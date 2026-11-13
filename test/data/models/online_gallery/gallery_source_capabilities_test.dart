@@ -17,4 +17,15 @@ void main() {
       );
     }
   });
+
+  test('AI TAG favorites are device-local and browsable', () {
+    final capabilities = gallerySourceCapabilities[GallerySourceId.aiTag]!;
+    expect(capabilities.supportsFavorites, isTrue);
+    expect(capabilities.supportsLocalFavorites, isTrue);
+    expect(capabilities.supportsWritableFavorites, isFalse);
+    expect(
+      capabilities.randomFeeds,
+      isNot(contains(GalleryFeedKind.favorites)),
+    );
+  });
 }
