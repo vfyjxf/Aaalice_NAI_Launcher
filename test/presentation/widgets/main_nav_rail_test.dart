@@ -220,6 +220,16 @@ void main() {
         .getBottomRight(find.byKey(const Key('main-nav-toggle')))
         .dy;
     expect(toggleBottom, closeTo(railBottom - 6, 0.01));
+
+    // 次级操作组按内容高度收缩，不再固定占据半屏。
+    final secondaryHeight = tester
+        .getSize(find.byKey(const Key('main-nav-secondary-scroll')))
+        .height;
+    expect(secondaryHeight, lessThan(260));
+    final primaryHeight = tester
+        .getSize(find.byKey(const Key('main-nav-primary-scroll')))
+        .height;
+    expect(primaryHeight, greaterThan(600));
     expect(tester.takeException(), isNull);
   });
 
