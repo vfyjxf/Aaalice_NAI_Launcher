@@ -229,56 +229,51 @@ class MainNavRail extends ConsumerWidget {
           ),
 
           Flexible(
-            child: LayoutBuilder(
-              builder: (context, constraints) => SingleChildScrollView(
-                key: const Key('main-nav-secondary-scroll'),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      _NavIcon(
-                        key: const Key('queue-nav-item'),
-                        focusNode: queueFocusNode,
-                        icon: switch (queueExecutionStatus) {
-                          QueueExecutionStatus.running =>
-                            Icons.play_arrow_rounded,
-                          QueueExecutionStatus.paused => Icons.pause_rounded,
-                          _ => Icons.playlist_play_rounded,
-                        },
-                        label: context.l10n.queue_management,
-                        isSelected: isQueueVisible,
-                        badgeLabel: queueCount > 0
-                            ? (queueCount > 99 ? '99+' : queueCount.toString())
-                            : null,
-                        onTap: () => onQueueVisibilityChanged(!isQueueVisible),
-                      ),
-
-                      // Bottom Settings
-                      _NavIcon(
-                        key: const Key('nav-branch-8'),
-                        icon: Icons.settings,
-                        label: context.l10n.nav_settings,
-                        isSelected: selectedIndex == 8,
-                        showBadge: showUpdateBadge,
-                        onTap: () =>
-                            navigationShell.goBranch(AppBranch.settings.index),
-                      ),
-                      if (allowExpansion) ...[
-                        const SizedBox(height: 2),
-                        _NavRailToggle(
-                          isExpanded: isExpanded,
-                          onTap: () {
-                            ref
-                                .read(layoutStateNotifierProvider.notifier)
-                                .toggleMainNavRail();
-                          },
-                        ),
-                      ],
-                      const SizedBox(height: 6),
-                    ],
+            flex: 0,
+            child: SingleChildScrollView(
+              key: const Key('main-nav-secondary-scroll'),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _NavIcon(
+                    key: const Key('queue-nav-item'),
+                    focusNode: queueFocusNode,
+                    icon: switch (queueExecutionStatus) {
+                      QueueExecutionStatus.running => Icons.play_arrow_rounded,
+                      QueueExecutionStatus.paused => Icons.pause_rounded,
+                      _ => Icons.playlist_play_rounded,
+                    },
+                    label: context.l10n.queue_management,
+                    isSelected: isQueueVisible,
+                    badgeLabel: queueCount > 0
+                        ? (queueCount > 99 ? '99+' : queueCount.toString())
+                        : null,
+                    onTap: () => onQueueVisibilityChanged(!isQueueVisible),
                   ),
-                ),
+
+                  // Bottom Settings
+                  _NavIcon(
+                    key: const Key('nav-branch-8'),
+                    icon: Icons.settings,
+                    label: context.l10n.nav_settings,
+                    isSelected: selectedIndex == 8,
+                    showBadge: showUpdateBadge,
+                    onTap: () =>
+                        navigationShell.goBranch(AppBranch.settings.index),
+                  ),
+                  if (allowExpansion) ...[
+                    const SizedBox(height: 2),
+                    _NavRailToggle(
+                      isExpanded: isExpanded,
+                      onTap: () {
+                        ref
+                            .read(layoutStateNotifierProvider.notifier)
+                            .toggleMainNavRail();
+                      },
+                    ),
+                  ],
+                  const SizedBox(height: 6),
+                ],
               ),
             ),
           ),
