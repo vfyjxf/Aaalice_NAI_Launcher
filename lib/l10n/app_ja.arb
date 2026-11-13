@@ -1966,6 +1966,8 @@
   "onlineGallery_artistHuntDetailFailed": "候補作品の詳細をすべて解析できませんでした。再試行してください。",
   "onlineGallery_aiTagTimeRange": "期間",
   "onlineGallery_aiTagAllTime": "すべて",
+  "onlineGallery_aiTagModel": "モデル",
+  "onlineGallery_aiTagAllModels": "すべてのモデル",
   "onlineGallery_aiTagCurrentMonthly": "リアルタイム月間ランキング",
   "onlineGallery_aiTagOlderMonthly": "過去のアーカイブ",
   "onlineGallery_aiTagRankingProcessing": "ランキングを生成中です。しばらくしてから再試行してください。",

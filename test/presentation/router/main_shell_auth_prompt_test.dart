@@ -18,6 +18,7 @@ import 'package:nai_launcher/presentation/providers/replication_queue_provider.d
 import 'package:nai_launcher/presentation/providers/shortcuts_provider.dart';
 import 'package:nai_launcher/presentation/router/app_shell.dart';
 import 'package:nai_launcher/presentation/router/shell_panels_overlay.dart';
+import 'package:nai_launcher/presentation/widgets/navigation/main_nav_rail.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 void main() {
@@ -456,11 +457,14 @@ void main() {
     );
     await tester.pump();
 
-    final agentEntry = find.byKey(const Key('agent-nav-item'));
     final queueEntry = find.byKey(const Key('queue-nav-item'));
-    await tester.tap(
-      find.descendant(of: agentEntry, matching: find.byType(Icon)).first,
-    );
+    // 智能体入口已从侧栏移除，直接通过导航栏回调驱动同一开关动作。
+    void toggleAgent() {
+      final rail = tester.widget<MainNavRail>(find.byType(MainNavRail));
+      rail.onAgentVisibilityChanged(!rail.isAgentVisible);
+    }
+
+    toggleAgent();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
@@ -496,9 +500,7 @@ void main() {
     expect(find.byKey(const ValueKey('queue-shell-panel')), findsOneWidget);
     expect(find.byKey(const ValueKey('agent-shell-panel')), findsNothing);
 
-    await tester.tap(
-      find.descendant(of: agentEntry, matching: find.byType(Icon)).first,
-    );
+    toggleAgent();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(container.read(shellPanelProvider), ShellPanel.agent);
@@ -509,15 +511,9 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(container.read(shellPanelProvider), isNull);
-    final agentInkWell = tester.widget<InkWell>(
-      find.descendant(of: agentEntry, matching: find.byType(InkWell)),
-    );
-    expect(agentInkWell.focusNode?.hasFocus, isTrue);
-    expect(agentInkWell.focusColor, Colors.transparent);
+    // 侧栏智能体入口已移除，焦点不再回落到该图标；关闭结果由面板断言覆盖。
 
-    await tester.tap(
-      find.descendant(of: agentEntry, matching: find.byType(Icon)).first,
-    );
+    toggleAgent();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(
@@ -531,7 +527,6 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(container.read(shellPanelProvider), isNull);
-    expect(agentInkWell.focusNode?.hasFocus, isTrue);
     expect(tester.takeException(), isNull);
   });
 

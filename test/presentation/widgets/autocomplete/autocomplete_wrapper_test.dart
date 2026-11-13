@@ -109,6 +109,66 @@ void main() {
     expect(controller.selection.extentOffset, controller.text.length);
   });
 
+  testWidgets(
+    'submitOnEnter submits raw search text instead of sinking Enter',
+    (tester) async {
+      final controller = TextEditingController(text: 'blu');
+      controller.selection = const TextSelection.collapsed(offset: 3);
+      final focusNode = FocusNode();
+      final baseSource = _BaseSource();
+      String? submitted;
+      addTearDown(() {
+        controller.dispose();
+        focusNode.dispose();
+      });
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            autocompleteServicesProvider.overrideWithValue(
+              AutocompleteServices(
+                localSources: [baseSource],
+                dictionaryTranslations: const _NoTranslations(),
+                llmTranslations: const _NoTranslations(),
+                danbooru: _NoDanbooru(),
+              ),
+            ),
+          ],
+          child: MaterialApp(
+            locale: const Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: AutocompleteWrapper(
+                controller: controller,
+                focusNode: focusNode,
+                config: const AutocompleteConfig(submitOnEnter: true),
+                onSuggestionSelected: (value) => submitted = value,
+                child: TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  textInputAction: TextInputAction.search,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      focusNode.requestFocus();
+      await tester.pump();
+      await _typeCurrentText(tester, controller);
+
+      expect(find.text('blue_eyes'), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+
+      // 未用方向键选中候选时，Enter 直接提交当前检索词，不插入补全。
+      expect(submitted, 'blu');
+      expect(controller.text, 'blu');
+      expect(find.text('blue_eyes'), findsNothing);
+    },
+  );
+
   testWidgets('artist colon opens artist-only results and preserves prefix', (
     tester,
   ) async {

@@ -74,7 +74,7 @@ class ImageDetailCallbacks {
 /// 功能特性:
 /// - 左右滑动/箭头切换图片
 /// - 支持缩放平移和双击缩放
-/// - 底部缩略图条快速跳转
+/// - 右侧缩略图轨快速跳转
 /// - 键盘导航支持
 /// - 桌面端右侧元数据面板
 class ImageDetailViewer extends ConsumerStatefulWidget {
@@ -198,9 +198,12 @@ class _ImageDetailViewerState extends ConsumerState<ImageDetailViewer> {
   static const Duration _windowsEscFocusCooldown = Duration(milliseconds: 1200);
   static const Duration _windowsEscBounceCooldown = Duration(seconds: 4);
   static const Duration _closeRequestThrottle = Duration(milliseconds: 700);
-  static const double _initialMetadataPanelWidth = 420;
-  static const double _minimumMetadataPanelWidth = 320;
+  static const double _initialMetadataPanelWidth = 336;
+  static const double _minimumMetadataPanelWidth = 280;
   static const double _minimumImagePaneWidth = 480;
+
+  /// 右侧缩略图轨的固定宽度（不含 1px 分隔线）
+  static const double _thumbnailRailWidth = 84;
 
   late PageController _pageController;
   late ScrollController _thumbnailController;
@@ -253,19 +256,21 @@ class _ImageDetailViewerState extends ConsumerState<ImageDetailViewer> {
     );
   }
 
+  // 纵向缩略图轨：单项 64 高、间距 8，列表上下各留 8 内边距
   void _scrollToThumbnail(int index, {bool animate = true}) {
     if (!_thumbnailController.hasClients) return;
 
-    const thumbnailWidth = 80.0;
-    const thumbnailMargin = 8.0;
-    const totalWidth = thumbnailWidth + thumbnailMargin;
+    const itemSize = 64.0;
+    const itemExtent = itemSize + 8.0;
+    const listPadding = 8.0;
 
-    final viewportWidth = _thumbnailController.position.viewportDimension;
-    final targetOffset =
-        (index * totalWidth) - (viewportWidth / 2) + (totalWidth / 2);
-    final maxOffset = _thumbnailController.position.maxScrollExtent;
-
-    final offset = targetOffset.clamp(0.0, maxOffset);
+    final position = _thumbnailController.position;
+    final itemCenter = listPadding + index * itemExtent + (itemSize / 2);
+    final targetOffset = itemCenter - (position.viewportDimension / 2);
+    final offset = targetOffset.clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
 
     if (animate) {
       _thumbnailController.animateTo(
@@ -602,6 +607,20 @@ class _ImageDetailViewerState extends ConsumerState<ImageDetailViewer> {
   Widget _buildMainContent({required bool showMetadataAction}) {
     final showThumbnails = widget.showThumbnails && widget.images.length > 1;
 
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: _buildImageStage(showMetadataAction: showMetadataAction),
+        ),
+        // 缩略图轨独立占宽，图片区域不会被覆盖
+        if (showThumbnails) _buildThumbnailRail(),
+      ],
+    );
+  }
+
+  /// 图片舞台：PageView、顶栏与左右翻页按钮都留在图片区域内
+  Widget _buildImageStage({required bool showMetadataAction}) {
     return Stack(
       children: [
         // 主图预览区域
@@ -635,53 +654,8 @@ class _ImageDetailViewerState extends ConsumerState<ImageDetailViewer> {
           top: _showControls ? 0 : -100,
           left: 0,
           right: 0,
-          child: DetailTopBar(
-            currentIndex: _currentIndex,
-            totalImages: widget.images.length,
-            currentImage: _currentImage,
-            onClose: () => _requestClose('top-bar-close'),
-            onShowMetadata: showMetadataAction ? _showMetadataPanel : null,
-            onReuseMetadata: widget.callbacks?.onReuseMetadata != null
-                ? () => _handleReuseMetadata(context)
-                : null,
-            onFavoriteToggle: widget.callbacks?.onFavoriteToggle != null
-                ? () => widget.callbacks!.onFavoriteToggle!(_currentImage)
-                : null,
-            onSave: widget.callbacks?.onSave != null
-                ? () => widget.callbacks!.onSave!(_currentImage)
-                : null,
-            onSaveAs: widget.callbacks?.onSaveAs != null
-                ? () => widget.callbacks!.onSaveAs!(_currentImage)
-                : null,
-            onCopyImage: _currentImage.showCopyButton
-                ? () => _copyImageToClipboard(context)
-                : null,
-            onShare: PlatformCapabilities.current.supportsNativeShare
-                ? () => _shareImage(context)
-                : null,
-            onWatermark: () => _openWatermarkEditor(context),
-            onMosaic: () => _openMosaicEditor(context),
-            onSendToImg2Img: widget.callbacks?.onSendToImg2Img != null
-                ? () => widget.callbacks!.onSendToImg2Img!(_currentImage)
-                : null,
-            onSendToReversePrompt:
-                widget.callbacks?.onSendToReversePrompt != null
-                ? () => widget.callbacks!.onSendToReversePrompt!(_currentImage)
-                : null,
-          ),
+          child: _buildTopBar(showMetadataAction: showMetadataAction),
         ),
-
-        // 底部缩略图栏
-        if (showThumbnails)
-          AnimatedPositioned(
-            duration: MediaQuery.disableAnimationsOf(context)
-                ? Duration.zero
-                : const Duration(milliseconds: 200),
-            bottom: _showControls ? 0 : -100,
-            left: 0,
-            right: 0,
-            child: _buildBottomBar(),
-          ),
 
         // 左右导航按钮
         if (_showControls && widget.images.length > 1) ...[
@@ -714,22 +688,63 @@ class _ImageDetailViewerState extends ConsumerState<ImageDetailViewer> {
     );
   }
 
-  Widget _buildBottomBar() {
-    return Container(
-      height: 100,
-      alignment: Alignment.bottomCenter,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.bottomCenter,
-          end: Alignment.topCenter,
-          colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
+  Widget _buildTopBar({required bool showMetadataAction}) {
+    return DetailTopBar(
+      currentIndex: _currentIndex,
+      totalImages: widget.images.length,
+      currentImage: _currentImage,
+      onClose: () => _requestClose('top-bar-close'),
+      onShowMetadata: showMetadataAction ? _showMetadataPanel : null,
+      onReuseMetadata: widget.callbacks?.onReuseMetadata != null
+          ? () => _handleReuseMetadata(context)
+          : null,
+      onFavoriteToggle: widget.callbacks?.onFavoriteToggle != null
+          ? () => widget.callbacks!.onFavoriteToggle!(_currentImage)
+          : null,
+      onSave: widget.callbacks?.onSave != null
+          ? () => widget.callbacks!.onSave!(_currentImage)
+          : null,
+      onSaveAs: widget.callbacks?.onSaveAs != null
+          ? () => widget.callbacks!.onSaveAs!(_currentImage)
+          : null,
+      onCopyImage: _currentImage.showCopyButton
+          ? () => _copyImageToClipboard(context)
+          : null,
+      onShare: PlatformCapabilities.current.supportsNativeShare
+          ? () => _shareImage(context)
+          : null,
+      onWatermark: () => _openWatermarkEditor(context),
+      onMosaic: () => _openMosaicEditor(context),
+      onSendToImg2Img: widget.callbacks?.onSendToImg2Img != null
+          ? () => widget.callbacks!.onSendToImg2Img!(_currentImage)
+          : null,
+      onSendToReversePrompt: widget.callbacks?.onSendToReversePrompt != null
+          ? () => widget.callbacks!.onSendToReversePrompt!(_currentImage)
+          : null,
+    );
+  }
+
+  /// 右侧缩略图轨：固定占宽，选中项纵向滚动到轨道中部
+  Widget _buildThumbnailRail() {
+    final theme = Theme.of(context);
+
+    return SizedBox(
+      width: _thumbnailRailWidth,
+      child: DecoratedBox(
+        // 分隔线画在轨道左缘，不参与缩略图测宽
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest,
+          border: Border(
+            left: BorderSide(color: theme.dividerColor.withValues(alpha: 0.6)),
+          ),
         ),
-      ),
-      child: DetailThumbnailBar(
-        images: widget.images,
-        currentIndex: _currentIndex,
-        scrollController: _thumbnailController,
-        onTap: _jumpToPage,
+        child: DetailThumbnailBar(
+          axis: Axis.vertical,
+          images: widget.images,
+          currentIndex: _currentIndex,
+          scrollController: _thumbnailController,
+          onTap: _jumpToPage,
+        ),
       ),
     );
   }

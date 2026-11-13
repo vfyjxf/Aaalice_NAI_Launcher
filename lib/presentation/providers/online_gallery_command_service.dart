@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/online_gallery/ai_tag_model_filter.dart';
 import '../../core/online_gallery/gallery_tag_query.dart';
 import '../../data/datasources/remote/danbooru_api_service.dart';
 import '../../data/datasources/remote/online_gallery/quick_tag_cloud_gallery_query.dart';
@@ -313,6 +314,25 @@ class OnlineGalleryCommandService {
     state = state.copyWith(aiTagTimeRange: range, clearError: true);
     if (state.viewMode == GalleryViewMode.search &&
         state.sourceId == GallerySourceId.aiTag) {
+      await _loadPosts(refresh: true);
+    }
+  }
+
+  Future<void> setAiTagModelFilter(String? modelKey) async {
+    final normalized = AiTagModelFilter.fromKey(modelKey)?.key;
+    if (state.aiTagModelFilter == normalized) return;
+    _cancelCurrentRequest();
+    state = state.copyWith(
+      aiTagModelFilter: normalized,
+      clearAiTagModelFilter: normalized == null,
+      clearError: true,
+    );
+    final activeAiTag =
+        (state.viewMode == GalleryViewMode.search &&
+            state.sourceId == GallerySourceId.aiTag) ||
+        (state.viewMode == GalleryViewMode.popular &&
+            state.popularSourceId == GallerySourceId.aiTag);
+    if (activeAiTag) {
       await _loadPosts(refresh: true);
     }
   }

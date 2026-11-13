@@ -3,15 +3,21 @@ import 'package:flutter/material.dart';
 
 import '../image_detail_data.dart';
 
-/// 底部缩略图导航条
+/// 缩略图导航
 ///
 /// 显示所有图片的缩略图，支持点击跳转
-/// 悬停效果：放大、边框高亮、阴影
+/// 横向为底部导航条，纵向为侧边导航轨
+/// 悬停效果：放大（仅横向）、边框高亮、阴影
 class DetailThumbnailBar extends StatelessWidget {
   final List<ImageDetailData> images;
   final int currentIndex;
   final ScrollController scrollController;
   final ValueChanged<int> onTap;
+
+  /// 排列方向
+  ///
+  /// 纵向使用固定尺寸的侧边轨道，悬停不再改变几何
+  final Axis axis;
 
   const DetailThumbnailBar({
     super.key,
@@ -19,6 +25,7 @@ class DetailThumbnailBar extends StatelessWidget {
     required this.currentIndex,
     required this.scrollController,
     required this.onTap,
+    this.axis = Axis.horizontal,
   });
 
   void _handlePointerSignal(PointerSignalEvent event) {
@@ -44,21 +51,27 @@ class DetailThumbnailBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isVertical = axis == Axis.vertical;
     return Listener(
       behavior: HitTestBehavior.opaque,
       onPointerSignal: _handlePointerSignal,
       child: SizedBox(
-        height: 84,
+        // 横向条固定高度，纵向轨道固定宽度
+        height: isVertical ? null : 84,
+        width: isVertical ? 84 : null,
         child: ListView.builder(
           controller: scrollController,
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          scrollDirection: axis,
+          padding: isVertical
+              ? const EdgeInsets.symmetric(horizontal: 10, vertical: 8)
+              : const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           itemCount: images.length,
           itemBuilder: (context, index) {
             return _ThumbnailItem(
               key: ValueKey(images[index].identifier),
               image: images[index],
               index: index,
+              axis: axis,
               isSelected: index == currentIndex,
               onTap: () => onTap(index),
             );
@@ -73,6 +86,7 @@ class DetailThumbnailBar extends StatelessWidget {
 class _ThumbnailItem extends StatefulWidget {
   final ImageDetailData image;
   final int index;
+  final Axis axis;
   final bool isSelected;
   final VoidCallback onTap;
 
@@ -80,6 +94,7 @@ class _ThumbnailItem extends StatefulWidget {
     super.key,
     required this.image,
     required this.index,
+    required this.axis,
     required this.isSelected,
     required this.onTap,
   });
@@ -108,20 +123,32 @@ class _ThumbnailItemState extends State<_ThumbnailItem> {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
 
-    // 计算尺寸：选中最大，悬停次之，默认最小
+    // 计算尺寸：横向选中最大、悬停次之、默认最小；纵向固定尺寸，
+    // 悬停只改变描边与透明度，避免轨道内元素跳动
     const baseSize = 72.0;
     const selectedSize = 80.0;
     const hoveredSize = 78.0;
+    const railSize = 64.0;
 
-    final size = widget.isSelected
+    final isVertical = widget.axis == Axis.vertical;
+    final size = isVertical
+        ? railSize
+        : widget.isSelected
         ? selectedSize
         : _isHovered
         ? hoveredSize
         : baseSize;
 
-    // 计算边距（保持总高度不变）
+    // 计算边距：横向保持总高度不变，纵向在下方留出轨道间距
     const totalHeight = 84.0;
     final verticalMargin = (totalHeight - size) / 2;
+    final margin = isVertical
+        ? const EdgeInsets.only(bottom: 8)
+        : EdgeInsets.only(
+            right: 8,
+            top: verticalMargin,
+            bottom: verticalMargin,
+          );
 
     // 边框颜色
     final borderColor = widget.isSelected
@@ -168,11 +195,7 @@ class _ThumbnailItemState extends State<_ThumbnailItem> {
           curve: Curves.easeOutCubic,
           width: size,
           height: size,
-          margin: EdgeInsets.only(
-            right: 8,
-            top: verticalMargin,
-            bottom: verticalMargin,
-          ),
+          margin: margin,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: borderColor, width: borderWidth),

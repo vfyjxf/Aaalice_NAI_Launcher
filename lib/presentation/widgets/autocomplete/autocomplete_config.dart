@@ -12,6 +12,7 @@ class AutocompleteConfig {
     this.autoInsertComma = true,
     this.replaceUnderscoreWithSpace = false,
     this.treatSpacesAsSeparators = false,
+    this.submitOnEnter = false,
   });
 
   /// Overrides the user-level result count only for space-constrained fields.
@@ -25,4 +26,8 @@ class AutocompleteConfig {
   final bool autoInsertComma;
   final bool replaceUnderscoreWithSpace;
   final bool treatSpacesAsSeparators;
+
+  /// 单行检索框在 Enter 时优先提交搜索，而不是吞掉按键等待补全。
+  /// 仅在补全没有可插入的候选项时生效，多行输入不受影响。
+  final bool submitOnEnter;
 }

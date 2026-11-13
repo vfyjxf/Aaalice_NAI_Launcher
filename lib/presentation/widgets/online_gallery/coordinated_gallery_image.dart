@@ -55,11 +55,19 @@ class _CoordinatedGalleryImageState extends State<CoordinatedGalleryImage> {
   Future<void> _failedImageEviction = Future<void>.value();
   int _revision = 0;
 
+  /// Thumbnails are small enough to decode on the scroll frame, so they publish
+  /// as soon as their transfer completes. Full-size samples are deferred until
+  /// scrolling stops: publishing them mid-fling puts a multi-megabyte decode in
+  /// the same frames that must process pointer and scroll input.
+  bool get _defersUntilScrollIdle =>
+      widget.request.tier != GalleryImageTier.thumbnail;
+
   @override
   void initState() {
     super.initState();
     final available = widget.coordinator.isReady(widget.request);
-    _completionPending = available && widget.coordinator.isPaused;
+    _completionPending =
+        _defersUntilScrollIdle && available && widget.coordinator.isPaused;
     _ready = available && !_completionPending;
     _showImmediately = available;
     widget.coordinator.addListener(_handleCoordinatorChanged);
@@ -94,7 +102,8 @@ class _CoordinatedGalleryImageState extends State<CoordinatedGalleryImage> {
       _requesting = false;
       if (requestChanged) {
         final available = widget.coordinator.isReady(widget.request);
-        _completionPending = available && widget.coordinator.isPaused;
+        _completionPending =
+            _defersUntilScrollIdle && available && widget.coordinator.isPaused;
         _ready = available && !_completionPending;
         _showImmediately = available;
         _failed = false;
@@ -156,10 +165,11 @@ class _CoordinatedGalleryImageState extends State<CoordinatedGalleryImage> {
             widget.request,
           );
           _requesting = false;
-          if (loaded && widget.coordinator.isPaused) {
-            // Downloading may finish while a fling is active. Publishing the
-            // provider immediately would decode and rebuild image tiles in the
-            // same frames that must process pointer/scroll input.
+          if (loaded && _defersUntilScrollIdle && widget.coordinator.isPaused) {
+            // A sample download may finish while a fling is active. Publishing
+            // it immediately would decode and rebuild full-size image tiles in
+            // the same frames that must process pointer/scroll input.
+            // Thumbnails are cheap to decode, so they publish right away.
             _completionPending = true;
             return;
           }

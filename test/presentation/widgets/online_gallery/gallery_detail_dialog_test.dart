@@ -296,9 +296,10 @@ void main() {
           widget.data == 'Copy prompt' &&
           widget.style?.fontWeight == FontWeight.w600,
     );
+    // 缩略图轨在图片左侧，遍历顺序上排在翻页按钮之前，因此多两次 Tab
     for (
       var index = 0;
-      index < 8 && expandedLabel.evaluate().isEmpty;
+      index < 12 && expandedLabel.evaluate().isEmpty;
       index++
     ) {
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
@@ -1039,6 +1040,11 @@ void main() {
 
     final thumbnails = find.byType(SurfaceInkWell);
     expect(thumbnails, findsNWidgets(2));
+    // 缩略图轨在图片左侧并独立占宽，不覆盖主图
+    expect(
+      tester.getRect(thumbnails.at(0)).right,
+      lessThanOrEqualTo(tester.getRect(find.byType(PageView)).left),
+    );
     Size contentSize(Finder thumbnail) => tester.getSize(
       find.descendant(of: thumbnail, matching: find.byType(Icon)),
     );

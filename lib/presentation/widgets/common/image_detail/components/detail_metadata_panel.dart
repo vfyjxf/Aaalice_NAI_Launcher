@@ -340,12 +340,13 @@ class _DetailMetadataPanelState extends ConsumerState<DetailMetadataPanel> {
       slivers: [
         if (basicInfo.hasContent)
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            // 面板本身已收窄，横向内边距压到 12 保持内容宽度
+            padding: const EdgeInsets.fromLTRB(12, 16, 12, 0),
             sliver: SliverToBoxAdapter(child: basicInfo),
           ),
         if (metadata != null)
           SliverPadding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
             sliver: SliverToBoxAdapter(
               child: _MetadataContent(
                 metadata: metadata,

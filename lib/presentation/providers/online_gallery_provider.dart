@@ -403,6 +403,9 @@ class OnlineGalleryNotifier extends _$OnlineGalleryNotifier {
   Future<void> setAiTagTimeRange(String range) =>
       _commands.setAiTagTimeRange(range);
 
+  Future<void> setAiTagModelFilter(String? modelKey) =>
+      _commands.setAiTagModelFilter(modelKey);
+
   Future<void> setAiTagPopularPeriod(String period) =>
       _commands.setAiTagPopularPeriod(period);
 

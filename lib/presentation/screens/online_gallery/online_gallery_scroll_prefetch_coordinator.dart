@@ -541,7 +541,6 @@ class OnlineGalleryScrollPrefetchCoordinator {
         : visible.first.index;
     final thumbnailWindow = <String>{};
     var thumbnailCount = 0;
-    var sampleCount = 0;
     for (final entry in visible) {
       final request = entry.thumbnailRequest;
       if (request != null) {
@@ -582,40 +581,13 @@ class OnlineGalleryScrollPrefetchCoordinator {
         );
       }
     }
-    for (final entry in visible.take(12)) {
-      final item = entry.item;
-      if (item.isVideo ||
-          item.isAnimated ||
-          !item.mediaCapability.isFlutterImage ||
-          item.sourceId == GallerySourceId.aiTag) {
-        continue;
-      }
-      final sampleUrl = item.sampleUrl ?? item.largeFileUrl;
-      if (sampleUrl == null ||
-          sampleUrl.isEmpty ||
-          sampleUrl == item.previewUrl) {
-        continue;
-      }
-      sampleCount++;
-      unawaited(
-        controller.prefetchCoordinator.submit(
-          imageRequest(
-            item,
-            sampleUrl,
-            GalleryImageTier.sample,
-            entry.itemWidth,
-          ),
-          priority: GalleryImagePriority.lookahead,
-        ),
-      );
-    }
     controller.prefetchCoordinator.retainThumbnailWindow(thumbnailWindow);
     if (kDebugMode) {
       AppLogger.d(
         'prefetch visible=${visible.length} edge=$edge '
             'direction=${controller.scrollDirection} '
             'lookahead=${controller.lookaheadItemCount} '
-            'thumbnails=$thumbnailCount samples=$sampleCount details=$detailCount '
+            'thumbnails=$thumbnailCount details=$detailCount '
             'retained=${thumbnailWindow.length} '
             'queue=${controller.prefetchCoordinator.queueDepth} '
             'active=${controller.prefetchCoordinator.activeCount}',

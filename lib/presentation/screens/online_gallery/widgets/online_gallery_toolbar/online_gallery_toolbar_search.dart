@@ -244,6 +244,7 @@ class OnlineGalleryToolbarSearch {
       config: AutocompleteConfig(
         autoInsertComma: false,
         treatSpacesAsSeparators: treatSpacesAsSeparators,
+        submitOnEnter: true,
       ),
       onSuggestionSelected: (_) => onSubmitted(),
       child: InputSurfaceContainer(
@@ -256,6 +257,7 @@ class OnlineGalleryToolbarSearch {
             focusNode: focusNode,
             style: theme.textTheme.bodyMedium,
             textAlignVertical: TextAlignVertical.center,
+            textInputAction: TextInputAction.search,
             decoration: InputDecoration(
               hintText: hintText,
               hintStyle: TextStyle(
@@ -417,6 +419,7 @@ class OnlineGalleryToolbarSearch {
       config: const AutocompleteConfig(
         autoInsertComma: false,
         treatSpacesAsSeparators: true,
+        submitOnEnter: true,
       ),
       onSuggestionSelected: (value) {
         // 选择补全建议后立即触发搜索
@@ -434,6 +437,7 @@ class OnlineGalleryToolbarSearch {
             focusNode: focusNode,
             style: theme.textTheme.bodyMedium,
             textAlignVertical: TextAlignVertical.center,
+            textInputAction: TextInputAction.search,
             decoration: InputDecoration(
               hintText: context.l10n.onlineGallery_searchTags,
               filled: false,

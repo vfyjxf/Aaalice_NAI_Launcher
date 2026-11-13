@@ -338,7 +338,7 @@ class OnlineGalleryVisibilityDrivenItemState
     widget.scheduleReveal(() {
       _revealQueued = false;
       if (!mounted || _hasBeenVisible) return;
-      if (!_isVisible || _isScrolling) {
+      if (!_isVisible) {
         _startListeningForScrolling();
         return;
       }
@@ -390,7 +390,8 @@ class OnlineGalleryVisibilityDrivenItemState
         if (_isVisible == visible) return;
         _isVisible = visible;
         widget.onVisibilityTransition?.call();
-        if (visible && !_hasBeenVisible && !_isScrolling && mounted) {
+        // 可见即排队装配：不再等滚动停止，否则滑动中的新瓦片一直停在占位。
+        if (visible && !_hasBeenVisible && mounted) {
           _queueReveal();
         }
       },

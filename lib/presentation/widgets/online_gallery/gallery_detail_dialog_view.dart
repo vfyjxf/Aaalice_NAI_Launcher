@@ -160,8 +160,8 @@ class GalleryDetailDialogView extends StatelessWidget {
                                           ),
                                           SizedBox(
                                             width: constraints.maxWidth < 1050
-                                                ? 390
-                                                : 430,
+                                                ? 340
+                                                : 380,
                                             child: infoPanel,
                                           ),
                                         ],

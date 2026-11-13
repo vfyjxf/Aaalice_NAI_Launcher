@@ -694,25 +694,16 @@ class OnlineGalleryDetailLauncher {
   /// 处理收藏切换
   Future<bool> toggleFavorite(BuildContext context, GalleryItem post) async {
     final galleryNotifier = ref.read(onlineGalleryNotifierProvider.notifier);
-    final wasFavorited = galleryNotifier.isFavorited(post);
     try {
       final success = await galleryNotifier.toggleFavorite(post);
-      if (context.mounted) {
-        if (success) {
-          AppToast.info(
-            context,
-            wasFavorited
-                ? context.l10n.onlineGallery_unfavorited
-                : context.l10n.onlineGallery_favorited,
-          );
-        } else {
-          AppToast.error(
-            context,
-            context.l10n.onlineGallery_actionFailed(
-              context.l10n.onlineGallery_sourceRequestFailed,
-            ),
-          );
-        }
+      // 收藏成功不弹提示，避免 toast 遮挡详情页底部操作按钮；失败才提示。
+      if (context.mounted && !success) {
+        AppToast.error(
+          context,
+          context.l10n.onlineGallery_actionFailed(
+            context.l10n.onlineGallery_sourceRequestFailed,
+          ),
+        );
       }
       return success;
     } catch (error, stack) {

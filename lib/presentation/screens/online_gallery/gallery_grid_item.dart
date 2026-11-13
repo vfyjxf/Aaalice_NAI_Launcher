@@ -208,7 +208,10 @@ class _GalleryGridItemState extends State<GalleryGridItem> {
         onVisibilityDrivenRebuild: widget.onVisibilityDrivenRebuild,
         scheduleReveal: widget.scheduleReveal,
         builder: (context, hasBeenVisible, isScrolling, isVisible) {
-          if (!hasBeenVisible) {
+          // 可见即请求：滚动中的瓦片不必等到滚动停止后的 reveal 才装配卡片，
+          // 否则用户滑过的新瓦片会一直停留在延迟占位。
+          final active = hasBeenVisible || isVisible;
+          if (!active) {
             return _buildDeferredCard(layoutAspectRatio);
           }
           if (!_needsDetail) {
@@ -216,8 +219,8 @@ class _GalleryGridItemState extends State<GalleryGridItem> {
               context,
               post,
               layoutAspectRatio,
-              loadMedia: hasBeenVisible,
-              mediaRequestActive: hasBeenVisible,
+              loadMedia: active,
+              mediaRequestActive: active,
             );
           }
           if (_detailFuture == null) {
@@ -265,8 +268,8 @@ class _GalleryGridItemState extends State<GalleryGridItem> {
                 context,
                 resolved,
                 layoutAspectRatio,
-                loadMedia: hasBeenVisible,
-                mediaRequestActive: hasBeenVisible,
+                loadMedia: active,
+                mediaRequestActive: active,
                 detail: detail,
               );
             },

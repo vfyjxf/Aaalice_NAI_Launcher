@@ -1,5 +1,4 @@
 import '../../../../widgets/common/image_card_batch_scope.dart';
-import 'package:nai_launcher/presentation/widgets/common/horizontal_action_strip.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -10,7 +9,6 @@ import '../../../../../data/models/online_gallery/danbooru_post.dart';
 import '../../../../../data/services/danbooru_auth_service.dart';
 import '../../../../../data/services/gelbooru_auth_service.dart';
 import '../../../../adaptive/interaction_policy.dart';
-import '../../../../adaptive/window_size_class.dart';
 import '../../../../providers/online_gallery_blacklist_provider.dart';
 import '../../../../providers/online_gallery_output_filter_provider.dart';
 import '../../../../providers/online_gallery_prompt_tag_settings_provider.dart';
@@ -20,7 +18,6 @@ import '../../../../services/gallery_prompt_projection_service.dart';
 import '../../../../widgets/bulk_action_bar.dart';
 import '../../../../widgets/gallery/gallery_sidebar.dart';
 import '../../../online_gallery/online_gallery_screen_controller.dart';
-import 'online_gallery_search_reveal.dart';
 import 'online_gallery_toolbar.dart';
 import 'online_gallery_toolbar_auth.dart';
 import 'online_gallery_toolbar_bindings.dart';
@@ -129,8 +126,7 @@ class _OnlineGalleryToolbarPresenter {
 
     return LayoutBuilder(
       builder: (context, outerConstraints) {
-        final sizeClass = WindowSizeClass.fromWidth(outerConstraints.maxWidth);
-        final useMobileToolbar = sizeClass.isCompact;
+        final useMobileToolbar = outerConstraints.maxWidth < 600;
         return GalleryCollectionToolbarSurface(
           surfaceKey: const ValueKey('online-gallery-toolbar-tonal-surface'),
           child: LayoutBuilder(
@@ -145,58 +141,84 @@ class _OnlineGalleryToolbarPresenter {
                 );
               }
 
-              // 第一行空间不足时整体横向滚动，避免通过移除图标或换行破坏
-              // 全局控件的固定职责和可辨识性。
+              // 桌面主行不再横向滚动：窄宽度下标题收成图标、次要动作收成
+              // 图标按钮，搜索框在 900 以下收进筛选面板，所有控件保持可见。
               final forceCompactForText =
                   MediaQuery.textScalerOf(context).scale(1) > 1.2;
-              final useScrollablePrimary = constraints.maxWidth < 1800;
-              final compactPrimaryActions =
-                  forceCompactForText || constraints.maxWidth < 1100;
-              final compactRating = compactPrimaryActions;
-              final compactModes = compactPrimaryActions;
-              final collapseSecondaryControls = constraints.maxWidth < 1100;
+              final width = constraints.maxWidth;
+              final compactSource = width < 1800;
+              final compactPrimaryActions = forceCompactForText || width < 1400;
+              final compactRating = forceCompactForText || width < 1800;
+              final compactModes = forceCompactForText || width < 1800;
+              final collapseSecondaryControls = width < 1100;
+              final rowGap = width < 900 ? 4.0 : 8.0;
               final showQueryFields =
                   state.viewMode == GalleryViewMode.search ||
                   state.viewMode == GalleryViewMode.favorites ||
                   (state.viewMode == GalleryViewMode.popular &&
                       state.popularSourceId == GallerySourceId.aiTag);
+              // 900 以上内联搜索框；更窄时用搜索按钮打开含搜索的筛选面板。
+              final inlineQuery = showQueryFields && width >= 900;
+              final showQueryButton =
+                  showQueryFields && !inlineQuery && width >= 620;
+              final showPageTitle = width >= 620;
               final queryFieldWidth = switch (_activeSource(state)) {
                 GallerySourceId.aiTag => 520.0,
                 GallerySourceId.quickTagCloud => 420.0,
                 _ => 280.0,
               };
-              final revealSignature = Object.hash(
-                _activeSource(state),
-                state.viewMode,
-                constraints.maxWidth.round(),
-              ).toString();
               final secondaryControls = _buildSecondaryControls(theme, state);
               final leadingControls = Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  GalleryCollectionPageTitle(
-                    key: const ValueKey('online-gallery-page-title'),
-                    icon: Icons.photo_library_outlined,
-                    title: context.l10n.nav_onlineGallery,
-                    maxWidth: 168,
+                  if (showPageTitle) ...[
+                    GalleryCollectionPageTitle(
+                      key: const ValueKey('online-gallery-page-title'),
+                      icon: Icons.photo_library_outlined,
+                      title: context.l10n.nav_onlineGallery,
+                      compact: width < 900,
+                      maxWidth: width < 900 ? 28 : 168,
+                    ),
+                    SizedBox(width: rowGap),
+                  ],
+                  _buildSourceSelector(
+                    state,
+                    maxLabelWidth: width < 720
+                        ? 36
+                        : compactSource
+                        ? 104
+                        : 150,
                   ),
-                  const SizedBox(width: 16),
-                  _buildSourceSelector(state),
-                  const SizedBox(width: 8),
+                  SizedBox(width: rowGap),
                   _buildModeSelector(theme, state, compact: compactModes),
-                  const SizedBox(width: 8),
+                  SizedBox(width: rowGap),
                   _buildRatingControl(theme, state, compact: compactRating),
                 ],
               );
               final trailingControls = Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (showQueryButton) ...[
+                    Tooltip(
+                      message: context.l10n.onlineGallery_searchTags,
+                      child: IconButton(
+                        key: const ValueKey('online-gallery-primary-search'),
+                        onPressed: _showCompactFilters,
+                        icon: const Icon(Icons.search_rounded, size: 19),
+                        visualDensity:
+                            context.interactionPolicy.prefersTouchPresentation
+                            ? VisualDensity.standard
+                            : VisualDensity.compact,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                  ],
                   _buildGalleryPolicyControls(
                     theme,
                     sourceId: state.activeSourceId,
                     compact: true,
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: rowGap),
                   _buildPrimaryActions(
                     theme,
                     state,
@@ -206,23 +228,18 @@ class _OnlineGalleryToolbarPresenter {
                   ),
                 ],
               );
-              return OnlineGallerySearchReveal(
-                enabled: useScrollablePrimary && showQueryFields,
-                signature: revealSignature,
-                revealKey: _controller.primarySearchRevealKey,
-                child: OnlineGalleryToolbar(
-                  leading: leadingControls,
-                  query: _buildSearchFields(theme, state),
-                  trailing: trailingControls,
-                  secondary: secondaryControls,
-                  showQuery: showQueryFields,
-                  scrollPrimary: useScrollablePrimary,
-                  collapseSecondary: collapseSecondaryControls,
-                  queryWidth: queryFieldWidth,
-                  queryRevealKey: _controller.primarySearchRevealKey,
-                  onShowSourceFilters: _showSourceFilters,
-                  filterLabel: context.l10n.common_filter,
-                ),
+              return OnlineGalleryToolbar(
+                leading: leadingControls,
+                query: _buildSearchFields(theme, state),
+                trailing: trailingControls,
+                secondary: secondaryControls,
+                showQuery: inlineQuery,
+                scrollPrimary: forceCompactForText,
+                collapseSecondary: collapseSecondaryControls,
+                queryWidth: queryFieldWidth,
+                queryRevealKey: _controller.primarySearchRevealKey,
+                onShowSourceFilters: _showSourceFilters,
+                filterLabel: context.l10n.common_filter,
               );
             },
           ),
@@ -239,8 +256,9 @@ class _OnlineGalleryToolbarPresenter {
     required double availableWidth,
   }) {
     final compact = availableWidth < 350;
-    final sourceWidth = compact ? 72.0 : 132.0;
-    final modeWidth = compact ? 62.0 : 76.0;
+    final compactTitle = availableWidth < 400;
+    final sourceWidth = compact ? 66.0 : 100.0;
+    final modeWidth = compact ? 60.0 : 74.0;
     final filterWidth = compact ? 76.0 : 88.0;
     final activeSource = _activeSource(state);
     final sourceLabel = compact
@@ -260,45 +278,55 @@ class _OnlineGalleryToolbarPresenter {
         SizedBox(
           key: const ValueKey('online-gallery-mobile-scope-row'),
           height: _galleryToolbarControlHeight(context),
-          child: HorizontalActionStrip(
-            child: Row(
-              key: const ValueKey('online-gallery-mobile-primary-row'),
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GalleryCollectionPageTitle(
-                  key: const ValueKey('online-gallery-page-title'),
-                  icon: Icons.photo_library_outlined,
-                  title: context.l10n.nav_onlineGallery,
-                  maxWidth: 148,
-                ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  key: const ValueKey('online-gallery-mobile-source'),
-                  width: sourceWidth,
-                  child: _buildSourceSelector(
-                    state,
-                    selectedLabel: sourceLabel,
-                    maxLabelWidth: sourceWidth - 34,
-                    expandLabel: true,
+          child: Builder(
+            builder: (context) {
+              final primaryRow = Row(
+                key: const ValueKey('online-gallery-mobile-primary-row'),
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GalleryCollectionPageTitle(
+                    key: const ValueKey('online-gallery-page-title'),
+                    icon: Icons.photo_library_outlined,
+                    title: context.l10n.nav_onlineGallery,
+                    compact: compactTitle,
+                    maxWidth: compactTitle ? 28 : 148,
                   ),
-                ),
-                const SizedBox(width: 6),
-                SizedBox(
-                  width: modeWidth,
-                  child: _buildMobileModeSelector(theme, state),
-                ),
-                const SizedBox(width: 6),
-                _buildRatingControl(theme, state, compact: true),
-                const SizedBox(width: 8),
-                _buildUserButton(
-                  theme,
-                  state,
-                  authState,
-                  gelbooruAuthState,
-                  compact: true,
-                ),
-              ],
-            ),
+                  const SizedBox(width: 2),
+                  SizedBox(
+                    key: const ValueKey('online-gallery-mobile-source'),
+                    width: sourceWidth,
+                    child: _buildSourceSelector(
+                      state,
+                      selectedLabel: sourceLabel,
+                      maxLabelWidth: sourceWidth - 30,
+                      expandLabel: true,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  SizedBox(
+                    width: modeWidth,
+                    child: _buildMobileModeSelector(theme, state),
+                  ),
+                  const SizedBox(width: 2),
+                  _buildRatingControl(theme, state, compact: true),
+                  const SizedBox(width: 2),
+                  _buildUserButton(
+                    theme,
+                    state,
+                    authState,
+                    gelbooruAuthState,
+                    compact: true,
+                  ),
+                ],
+              );
+              // 超大字号下仅这一行允许滚动，正常字号保持一屏可见。
+              return MediaQuery.textScalerOf(context).scale(1) > 1.2
+                  ? SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: primaryRow,
+                    )
+                  : primaryRow;
+            },
           ),
         ),
         const SizedBox(height: 6),
@@ -666,10 +694,11 @@ class _OnlineGalleryToolbarPresenter {
       toggled: state.randomEnabled,
       label: context.l10n.onlineGallery_random,
       child: compact
-          ? TextButton(
+          ? IconButton(
               key: const ValueKey('online-gallery-random-toggle'),
               onPressed: () => _toggleRandomGallery(state),
-              style: TextButton.styleFrom(
+              tooltip: context.l10n.onlineGallery_random,
+              style: IconButton.styleFrom(
                 backgroundColor: state.randomEnabled
                     ? theme.colorScheme.primaryContainer
                     : Colors.transparent,
@@ -677,7 +706,6 @@ class _OnlineGalleryToolbarPresenter {
                     ? theme.colorScheme.onPrimaryContainer
                     : theme.colorScheme.onSurfaceVariant,
                 minimumSize: Size(0, _galleryToolbarControlHeight(context)),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
                 visualDensity:
                     context.interactionPolicy.prefersTouchPresentation
                     ? VisualDensity.standard
@@ -686,7 +714,7 @@ class _OnlineGalleryToolbarPresenter {
                   borderRadius: BorderRadius.circular(6),
                 ),
               ),
-              child: Text(context.l10n.onlineGallery_random),
+              icon: const Icon(Icons.shuffle, size: 18),
             )
           : TextButton.icon(
               key: const ValueKey('online-gallery-random-toggle'),
@@ -728,7 +756,7 @@ class _OnlineGalleryToolbarPresenter {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (state.supportsRandom) ...[randomButton, const SizedBox(width: 6)],
+        if (state.supportsRandom) ...[randomButton, const SizedBox(width: 4)],
         if (compact)
           FilledButton.tonal(
             key: const ValueKey('online-gallery-refresh'),
@@ -743,13 +771,12 @@ class _OnlineGalleryToolbarPresenter {
                 borderRadius: BorderRadius.circular(6),
               ),
             ),
-            child: state.isLoading
-                ? refreshIcon
-                : Text(
-                    state.randomEnabled
-                        ? context.l10n.onlineGallery_randomRedraw
-                        : context.l10n.onlineGallery_refresh,
-                  ),
+            child: Tooltip(
+              message: state.randomEnabled
+                  ? context.l10n.onlineGallery_randomRedraw
+                  : context.l10n.onlineGallery_refresh,
+              child: refreshIcon,
+            ),
           )
         else
           FilledButton.tonalIcon(
@@ -771,23 +798,27 @@ class _OnlineGalleryToolbarPresenter {
               ),
             ),
           ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 4),
         if (compact)
-          TextButton(
-            key: const ValueKey('online-gallery-multi-select'),
-            onPressed: _selectionNotifier.enter,
-            style: TextButton.styleFrom(
-              foregroundColor: theme.colorScheme.onSurfaceVariant,
-              minimumSize: Size(0, _galleryToolbarControlHeight(context)),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              visualDensity: context.interactionPolicy.prefersTouchPresentation
-                  ? VisualDensity.standard
-                  : VisualDensity.compact,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(6),
+          Tooltip(
+            message: context.l10n.common_multiSelect,
+            child: TextButton(
+              key: const ValueKey('online-gallery-multi-select'),
+              onPressed: _selectionNotifier.enter,
+              style: TextButton.styleFrom(
+                foregroundColor: theme.colorScheme.onSurfaceVariant,
+                minimumSize: Size(0, _galleryToolbarControlHeight(context)),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                visualDensity:
+                    context.interactionPolicy.prefersTouchPresentation
+                    ? VisualDensity.standard
+                    : VisualDensity.compact,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
               ),
+              child: const Icon(Icons.checklist, size: 18),
             ),
-            child: Text(context.l10n.common_multiSelect),
           )
         else
           TextButton.icon(

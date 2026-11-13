@@ -347,6 +347,7 @@ class OnlineGalleryState {
     this.popularScale = PopularScale.day,
     this.popularDate,
     this.aiTagTimeRange = 'all',
+    this.aiTagModelFilter,
     this.aiTagPopularPeriod = 'current',
     this.quickTagCloudFilterKey = QuickTagCloudGalleryQuery.defaultStableKey,
     this.aiTagConfig,
@@ -386,6 +387,10 @@ class OnlineGalleryState {
   final PopularScale popularScale;
   final DateTime? popularDate;
   final String aiTagTimeRange;
+
+  /// AI TAG 模型快捷筛选的稳定 key；null 表示全部模型。
+  final String? aiTagModelFilter;
+
   final String aiTagPopularPeriod;
   final String quickTagCloudFilterKey;
   final AiTagSourceConfig? aiTagConfig;
@@ -428,9 +433,9 @@ class OnlineGalleryState {
   String get currentCacheKey {
     switch (viewMode) {
       case GalleryViewMode.search:
-        return 'search:${sourceId.key}:${searchQuery.trim()}|${promptQuery.trim()}|$fuzzySearchEnabled|${_ratingsKey(selectedRatings)}|${dateRangeStart?.toIso8601String() ?? ''}|${dateRangeEnd?.toIso8601String() ?? ''}|$aiTagTimeRange|artistHunt:${sourceId == GallerySourceId.aiTag && artistHuntEnabled}|codex:${sourceId == GallerySourceId.quickTagCloud ? quickTagCloudFilterKey : ''}|blacklist:$blacklistRevision|auth:${_authScopeFor(sourceId)}';
+        return 'search:${sourceId.key}:${searchQuery.trim()}|${promptQuery.trim()}|$fuzzySearchEnabled|${_ratingsKey(selectedRatings)}|${dateRangeStart?.toIso8601String() ?? ''}|${dateRangeEnd?.toIso8601String() ?? ''}|$aiTagTimeRange|${_aiTagModelKey(sourceId)}|artistHunt:${sourceId == GallerySourceId.aiTag && artistHuntEnabled}|codex:${sourceId == GallerySourceId.quickTagCloud ? quickTagCloudFilterKey : ''}|blacklist:$blacklistRevision|auth:${_authScopeFor(sourceId)}';
       case GalleryViewMode.popular:
-        return 'popular:${popularSourceId.key}:${popularScale.name}|${popularDate?.toIso8601String() ?? ''}|$aiTagPopularPeriod|${popularQuery.trim()}|${popularPromptQuery.trim()}|${_ratingsKey(selectedRatings)}|artistHunt:${popularSourceId == GallerySourceId.aiTag && artistHuntEnabled}|blacklist:$blacklistRevision|auth:${_authScopeFor(popularSourceId)}';
+        return 'popular:${popularSourceId.key}:${popularScale.name}|${popularDate?.toIso8601String() ?? ''}|$aiTagPopularPeriod|${popularQuery.trim()}|${popularPromptQuery.trim()}|${_ratingsKey(selectedRatings)}|${_aiTagModelKey(popularSourceId)}|artistHunt:${popularSourceId == GallerySourceId.aiTag && artistHuntEnabled}|blacklist:$blacklistRevision|auth:${_authScopeFor(popularSourceId)}';
       case GalleryViewMode.favorites:
         return 'favorites:${favoritesSourceId.key}|${favoriteSearchQuery.trim()}|${_ratingsKey(selectedRatings)}|codex:${favoritesSourceId == GallerySourceId.quickTagCloud ? quickTagCloudFilterKey : ''}|blacklist:$blacklistRevision';
     }
@@ -498,6 +503,8 @@ class OnlineGalleryState {
     PopularScale? popularScale,
     DateTime? popularDate,
     String? aiTagTimeRange,
+    String? aiTagModelFilter,
+    bool clearAiTagModelFilter = false,
     String? aiTagPopularPeriod,
     String? quickTagCloudFilterKey,
     AiTagSourceConfig? aiTagConfig,
@@ -546,6 +553,9 @@ class OnlineGalleryState {
       popularScale: popularScale ?? this.popularScale,
       popularDate: clearPopularDate ? null : (popularDate ?? this.popularDate),
       aiTagTimeRange: aiTagTimeRange ?? this.aiTagTimeRange,
+      aiTagModelFilter: clearAiTagModelFilter
+          ? null
+          : (aiTagModelFilter ?? this.aiTagModelFilter),
       aiTagPopularPeriod: aiTagPopularPeriod ?? this.aiTagPopularPeriod,
       quickTagCloudFilterKey:
           quickTagCloudFilterKey ?? this.quickTagCloudFilterKey,
@@ -609,6 +619,10 @@ class OnlineGalleryState {
     _ => 'public',
   };
 
+  /// 模型筛选只影响 AI TAG；其他来源不带该维度，避免缓存键无意义分叉。
+  String _aiTagModelKey(GallerySourceId sourceId) =>
+      'model:${sourceId == GallerySourceId.aiTag ? (aiTagModelFilter ?? '') : ''}';
+
   static String _ratingsKey(Set<String> ratings) {
     final sorted = ratings.toList()..sort();
     return sorted.join();
@@ -634,6 +648,7 @@ String encodeOnlineGalleryBrowsingSession(OnlineGalleryState state) {
     'popularScale': state.popularScale.name,
     'popularDate': state.popularDate?.toIso8601String(),
     'aiTagTimeRange': state.aiTagTimeRange,
+    'aiTagModelFilter': state.aiTagModelFilter,
     'aiTagPopularPeriod': state.aiTagPopularPeriod,
     'quickTagCloudFilterKey': state.quickTagCloudFilterKey,
     'dateRangeStart': state.dateRangeStart?.toIso8601String(),
@@ -699,6 +714,12 @@ OnlineGalleryState decodeOnlineGalleryBrowsingSession(String? encoded) {
         fallback: 'all',
         maxLength: 100,
       ),
+      aiTagModelFilter:
+          json['aiTagModelFilter'] is String &&
+              (json['aiTagModelFilter'] as String).isNotEmpty &&
+              (json['aiTagModelFilter'] as String).length <= 40
+          ? json['aiTagModelFilter'] as String
+          : null,
       aiTagPopularPeriod: _decodeBoundedString(
         json['aiTagPopularPeriod'],
         fallback: 'current',

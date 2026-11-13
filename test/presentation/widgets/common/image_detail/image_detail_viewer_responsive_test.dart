@@ -78,7 +78,7 @@ void main() {
 
       expect(handle, findsOneWidget);
       expect(tester.getSize(handle).width, ResizeHandle.defaultWidth);
-      expect(initialPanelWidth, 420);
+      expect(initialPanelWidth, 336);
 
       final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
       addTearDown(mouse.removePointer);
@@ -88,7 +88,7 @@ void main() {
       await mouse.up();
       await tester.pump();
 
-      expect(tester.getSize(panel).width, closeTo(500, 0.01));
+      expect(tester.getSize(panel).width, closeTo(416, 0.01));
       expect(tester.getTopLeft(panel).dx, greaterThanOrEqualTo(480 + 8));
 
       await mouse.down(tester.getCenter(handle));
@@ -96,7 +96,7 @@ void main() {
       await mouse.up();
       await tester.pump();
 
-      expect(tester.getSize(panel).width, 320);
+      expect(tester.getSize(panel).width, 280);
       expect(tester.takeException(), isNull);
     },
   );
@@ -168,6 +168,53 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('1 / 3'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('多图时缩略图改为右侧竖向轨道并独立占宽', (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final images = [
+      _TestImageData('first', _validPngBytes),
+      _TestImageData('second', _validPngBytes),
+      _TestImageData('third', _validPngBytes),
+    ];
+
+    for (final size in [const Size(840, 700), const Size(1200, 700)]) {
+      await tester.binding.setSurfaceSize(size);
+      await _pumpViewer(tester, images: images);
+      await tester.pump();
+
+      final rail = find.byType(DetailThumbnailBar);
+      expect(rail, findsOneWidget, reason: 'size=$size');
+      expect(
+        tester.widget<DetailThumbnailBar>(rail).axis,
+        Axis.vertical,
+        reason: 'size=$size',
+      );
+
+      final railRect = tester.getRect(rail);
+      final pageRect = tester.getRect(find.byType(PageView));
+      // 轨道贴在图片右侧并独立占宽，图片区域不被覆盖
+      expect(
+        pageRect.right,
+        closeTo(railRect.left, 0.01),
+        reason: 'size=$size',
+      );
+      expect(railRect.width, 84, reason: 'size=$size');
+
+      if (size.width < 1100) {
+        // 没有侧边元数据面板时，图片与轨道正好铺满整行
+        expect(
+          pageRect.width + railRect.width,
+          closeTo(size.width, 0.01),
+          reason: 'size=$size',
+        );
+      } else {
+        // 有元数据面板时轨道夹在图片与面板之间
+        final panelRect = tester.getRect(find.byType(DetailMetadataPanel));
+        expect(railRect.right, lessThanOrEqualTo(panelRect.left));
+      }
+      expect(tester.takeException(), isNull, reason: 'size=$size');
+    }
   });
 
   testWidgets('焦点退回路由作用域后查看器按键仍然生效', (tester) async {

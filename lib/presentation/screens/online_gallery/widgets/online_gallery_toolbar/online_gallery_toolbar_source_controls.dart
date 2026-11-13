@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../core/online_gallery/ai_tag_model_filter.dart';
 import '../../../../../core/services/date_formatting_service.dart';
 import '../../../../../core/utils/localization_extension.dart';
 import '../../../../../data/models/online_gallery/danbooru_post.dart';
@@ -320,6 +321,7 @@ class OnlineGalleryToolbarSourceControls {
       required String label,
       required String tooltip,
       required VoidCallback onPressed,
+      required int badgeCount,
     }) {
       final style = TextButton.styleFrom(
         foregroundColor: theme.colorScheme.onSurfaceVariant,
@@ -333,11 +335,19 @@ class OnlineGalleryToolbarSourceControls {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
       );
       final button = compact
-          ? TextButton(
+          ? IconButton(
               key: key,
               onPressed: onPressed,
-              style: style,
-              child: Text(label),
+              tooltip: tooltip,
+              visualDensity: context.interactionPolicy.prefersTouchPresentation
+                  ? VisualDensity.standard
+                  : VisualDensity.compact,
+              icon: badgeCount > 0
+                  ? Badge(
+                      label: Text('$badgeCount'),
+                      child: Icon(icon, size: 19),
+                    )
+                  : Icon(icon, size: 19),
             )
           : TextButton.icon(
               key: key,
@@ -358,6 +368,7 @@ class OnlineGalleryToolbarSourceControls {
           label:
               '${context.l10n.onlineGallery_blacklistShort} · ${blacklist.tags.length}',
           tooltip: context.l10n.onlineGallery_blacklistTags,
+          badgeCount: blacklist.tags.length,
           onPressed: () => showOnlineGalleryBlacklistDialog(
             context,
             ref,
@@ -371,6 +382,7 @@ class OnlineGalleryToolbarSourceControls {
           label:
               '${compact ? context.l10n.onlineGallery_outputFilterShort : context.l10n.onlineGallery_outputFilter} · $outputFilterCount',
           tooltip: context.l10n.onlineGallery_outputFilterTooltip,
+          badgeCount: outputFilterCount,
           onPressed: () => showOnlineGalleryOutputFilterDialog(context),
         ),
       ],
@@ -432,6 +444,10 @@ class OnlineGalleryToolbarSourceControls {
       if (state.viewMode == GalleryViewMode.search &&
           activeSourceId == GallerySourceId.aiTag) {
         controls.add(_buildAiTagTimeRangeDropdown(state));
+      }
+      if (activeSourceId == GallerySourceId.aiTag &&
+          state.viewMode != GalleryViewMode.favorites) {
+        controls.add(_buildAiTagModelDropdown(state));
       }
       if (capabilities.supportsCategorizedTags) {
         controls.add(_buildPromptTagCategorySelector(theme));
@@ -582,6 +598,33 @@ class OnlineGalleryToolbarSourceControls {
           onChanged: (value) {
             if (value != null) _galleryNotifier.setAiTagTimeRange(value);
           },
+        ),
+      ),
+    );
+  }
+
+  /// AI TAG 模型快捷筛选（NAI V5 / V4.5 / Illustrious 等）。
+  Widget _buildAiTagModelDropdown(OnlineGalleryState state) {
+    final selected = AiTagModelFilter.fromKey(state.aiTagModelFilter);
+    return Tooltip(
+      message: context.l10n.onlineGallery_aiTagModel,
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          key: const ValueKey('online-gallery-ai-tag-model'),
+          value: selected?.key ?? '',
+          isDense: true,
+          borderRadius: BorderRadius.circular(12),
+          items: [
+            DropdownMenuItem(
+              value: '',
+              child: Text(context.l10n.onlineGallery_aiTagAllModels),
+            ),
+            for (final filter in AiTagModelFilter.values)
+              DropdownMenuItem(value: filter.key, child: Text(filter.label)),
+          ],
+          onChanged: (value) => _galleryNotifier.setAiTagModelFilter(
+            value == null || value.isEmpty ? null : value,
+          ),
         ),
       ),
     );

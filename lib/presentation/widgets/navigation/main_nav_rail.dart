@@ -3,10 +3,8 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nai_launcher/core/utils/localization_extension.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_version.dart';
-import '../../../core/constants/community_links.dart';
 import '../../../data/models/auth/saved_account.dart';
 import '../../../data/services/account_manager_provider.dart';
 import '../../providers/auth_mode_provider.dart';
@@ -239,32 +237,6 @@ class MainNavRail extends ConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      // Discord 社群
-                      _ExternalLinkIcon(
-                        icon: Icons.discord,
-                        label: context.l10n.nav_discordCommunity,
-                        color: const Color(0xFF5865F2), // Discord 紫色
-                        url: CommunityLinks.discord,
-                      ),
-
-                      // GitHub 仓库
-                      _GitHubIcon(
-                        url: CommunityLinks.github,
-                        label: context.l10n.nav_githubRepo,
-                      ),
-
-                      _NavIcon(
-                        key: const Key('agent-nav-item'),
-                        focusNode: agentFocusNode,
-                        icon: isAgentRunning
-                            ? Icons.smart_toy_rounded
-                            : Icons.smart_toy_outlined,
-                        label: context.l10n.nav_agent,
-                        isSelected: isAgentVisible,
-                        showBadge: isAgentRunning,
-                        onTap: () => onAgentVisibilityChanged(!isAgentVisible),
-                      ),
-
                       _NavIcon(
                         key: const Key('queue-nav-item'),
                         focusNode: queueFocusNode,
@@ -570,52 +542,6 @@ class _NavRailToggle extends StatelessWidget {
   }
 }
 
-/// GitHub 图标（自定义绘制）
-class _GitHubIcon extends StatefulWidget {
-  final String url;
-  final String label;
-
-  const _GitHubIcon({required this.url, required this.label});
-
-  @override
-  State<_GitHubIcon> createState() => _GitHubIconState();
-}
-
-class _GitHubIconState extends State<_GitHubIcon> {
-  bool _isHovering = false;
-  bool _isPressed = false;
-
-  Future<void> _launchUrl() async {
-    final uri = Uri.parse(widget.url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = theme.brightness == Brightness.dark
-        ? Colors.white
-        : const Color(0xFF24292E);
-
-    return _RailLinkItem(
-      label: widget.label,
-      color: color,
-      isHovering: _isHovering,
-      isPressed: _isPressed,
-      onTap: _launchUrl,
-      onHover: (value) => setState(() => _isHovering = value),
-      onTapDown: () => setState(() => _isPressed = true),
-      onTapEnd: () => setState(() => _isPressed = false),
-      icon: GitHubLogo(
-        size: 24,
-        color: color.withValues(alpha: _isHovering ? 1.0 : 0.7),
-      ),
-    );
-  }
-}
-
 /// 可复用的 GitHub 品牌图标。
 class GitHubLogo extends StatelessWidget {
   const GitHubLogo({super.key, required this.color, this.size = 24});
@@ -856,155 +782,6 @@ class _GitHubLogoPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _GitHubLogoPainter oldDelegate) {
     return oldDelegate.color != color;
-  }
-}
-
-/// 外部链接图标
-class _ExternalLinkIcon extends StatefulWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final String url;
-
-  const _ExternalLinkIcon({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.url,
-  });
-
-  @override
-  State<_ExternalLinkIcon> createState() => _ExternalLinkIconState();
-}
-
-class _ExternalLinkIconState extends State<_ExternalLinkIcon> {
-  bool _isHovering = false;
-  bool _isPressed = false;
-
-  Future<void> _launchUrl() async {
-    final uri = Uri.parse(widget.url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _RailLinkItem(
-      label: widget.label,
-      color: widget.color,
-      isHovering: _isHovering,
-      isPressed: _isPressed,
-      onTap: _launchUrl,
-      onHover: (value) => setState(() => _isHovering = value),
-      onTapDown: () => setState(() => _isPressed = true),
-      onTapEnd: () => setState(() => _isPressed = false),
-      icon: Icon(
-        widget.icon,
-        color: widget.color.withValues(alpha: _isHovering ? 1.0 : 0.7),
-        size: 24,
-      ),
-    );
-  }
-}
-
-class _RailLinkItem extends StatelessWidget {
-  const _RailLinkItem({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.isHovering,
-    required this.isPressed,
-    required this.onTap,
-    required this.onHover,
-    required this.onTapDown,
-    required this.onTapEnd,
-  });
-
-  final Widget icon;
-  final String label;
-  final Color color;
-  final bool isHovering;
-  final bool isPressed;
-  final VoidCallback onTap;
-  final ValueChanged<bool> onHover;
-  final VoidCallback onTapDown;
-  final VoidCallback onTapEnd;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final pressDuration = _boundedMotionDuration(
-      context,
-      theme.appTheme.fastDuration,
-      minMilliseconds: 100,
-      maxMilliseconds: 140,
-    );
-    final hoverDuration = _boundedMotionDuration(
-      context,
-      theme.appTheme.normalDuration,
-      minMilliseconds: 120,
-      maxMilliseconds: 180,
-    );
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-      constraints: BoxConstraints(minHeight: _railItemMinHeight(context)),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          onHover: onHover,
-          onTapDown: (_) => onTapDown(),
-          onTapUp: (_) => onTapEnd(),
-          onTapCancel: onTapEnd,
-          borderRadius: BorderRadius.circular(8),
-          child: AnimatedScale(
-            scale: isPressed ? 0.97 : 1.0,
-            duration: pressDuration,
-            curve: theme.appTheme.standardCurve,
-            child: AnimatedContainer(
-              duration: hoverDuration,
-              decoration: BoxDecoration(
-                color: isHovering
-                    ? color.withValues(alpha: 0.15)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Tooltip(
-                    message: label,
-                    preferBelow: false,
-                    verticalOffset: 24,
-                    child: SizedBox(
-                      width: 48,
-                      height: 48,
-                      child: Center(child: icon),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _ExpandedRailContent(
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 

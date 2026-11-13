@@ -93,6 +93,7 @@ class GalleryCollectionPageTitle extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.maxWidth = 220,
+    this.compact = false,
   });
 
   final IconData icon;
@@ -100,9 +101,14 @@ class GalleryCollectionPageTitle extends StatelessWidget {
   final String? subtitle;
   final double maxWidth;
 
+  /// 窄工具栏只保留图标，避免标题文本挤占操作区。
+  final bool compact;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final label = compact ? '' : title;
+    final sub = compact ? null : subtitle;
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxWidth),
       child: Row(
@@ -111,9 +117,9 @@ class GalleryCollectionPageTitle extends StatelessWidget {
           Icon(icon, size: 20, color: theme.colorScheme.primary),
           const SizedBox(width: 8),
           Flexible(
-            child: subtitle == null
+            child: sub == null
                 ? Text(
-                    title,
+                    label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleMedium?.copyWith(
@@ -125,7 +131,7 @@ class GalleryCollectionPageTitle extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        title,
+                        label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleMedium?.copyWith(
@@ -133,7 +139,7 @@ class GalleryCollectionPageTitle extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        subtitle!,
+                        sub,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.labelSmall?.copyWith(

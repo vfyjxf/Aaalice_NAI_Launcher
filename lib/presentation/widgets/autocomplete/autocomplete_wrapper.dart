@@ -133,6 +133,7 @@ class _AutocompleteWrapperState extends ConsumerState<AutocompleteWrapper> {
   CompletionOrchestrator? _orchestrator;
   String? _selectedId;
   int _selectedIndex = -1;
+  bool _selectionMovedByUser = false;
   bool _applyingSuggestion = false;
   bool _cursorMetricsScheduled = false;
   bool _wasComposing = false;
@@ -475,10 +476,12 @@ class _AutocompleteWrapperState extends ConsumerState<AutocompleteWrapper> {
     }
     if (candidates.isEmpty) {
       _selectedIndex = -1;
+      _selectionMovedByUser = false;
       _selectedId = null;
       _showOrUpdateOverlay();
       return;
     }
+    _selectionMovedByUser = false;
     final stableIndex = _selectedId == null
         ? -1
         : candidates.indexWhere((value) => value.stableId == _selectedId);
@@ -657,11 +660,30 @@ class _AutocompleteWrapperState extends ConsumerState<AutocompleteWrapper> {
     }
     final candidates = _orchestrator?.state.candidates ?? const [];
     if (candidates.isEmpty) return KeyEventResult.ignored;
+    final selectedCandidate =
+        _selectedIndex >= 0 && _selectedIndex < candidates.length
+        ? candidates[_selectedIndex]
+        : null;
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.enter &&
+        (widget.config?.submitOnEnter ?? false) &&
+        !_supportsNewlines &&
+        (!_selectionMovedByUser ||
+            selectedCandidate == null ||
+            selectedCandidate.isExisting)) {
+      // 没有可插入的候选项时直接提交当前文本；只把按键交回 TextField 时，
+      // 硬件键盘或覆盖层的按键分发不保证还会触发 onSubmitted。
+      _closeOverlay();
+      widget.onSuggestionSelected?.call(widget.controller.text);
+      return KeyEventResult.handled;
+    }
     if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _selectionMovedByUser = true;
       _moveSelection(1, candidates);
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _selectionMovedByUser = true;
       _moveSelection(-1, candidates);
       return KeyEventResult.handled;
     }

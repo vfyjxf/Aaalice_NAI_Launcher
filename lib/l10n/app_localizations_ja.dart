@@ -4430,6 +4430,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onlineGallery_aiTagAllTime => 'すべて';
 
   @override
+  String get onlineGallery_aiTagModel => 'モデル';
+
+  @override
+  String get onlineGallery_aiTagAllModels => 'すべてのモデル';
+
+  @override
   String get onlineGallery_aiTagCurrentMonthly => 'リアルタイム月間ランキング';
 
   @override

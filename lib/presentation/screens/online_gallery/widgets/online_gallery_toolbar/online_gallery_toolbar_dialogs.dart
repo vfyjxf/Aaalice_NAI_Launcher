@@ -145,6 +145,14 @@ class OnlineGalleryToolbarDialogs {
                   ),
                 ),
                 const SizedBox(height: 10),
+                // 窄宽度下主行把搜索框收成按钮，筛选面板必须保留检索入口。
+                SizedBox(
+                  height: gallerySearchFieldHeightFor(context),
+                  child: OnlineGalleryToolbarSearch(
+                    dialogBindings,
+                  ).buildMobile(theme),
+                ),
+                const SizedBox(height: 12),
                 if (isAiTagPromptMode) ...[
                   SizedBox(
                     height: gallerySearchFieldHeightFor(context),

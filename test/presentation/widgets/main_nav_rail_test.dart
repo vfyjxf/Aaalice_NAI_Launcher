@@ -158,16 +158,16 @@ void main() {
     );
     expect(_labelOpacity(tester, '画布'), 0);
 
-    final agentIcon = find.byIcon(Icons.smart_toy_outlined);
-    final agentTooltip = find.ancestor(
-      of: agentIcon,
+    final queueIcon = find.byIcon(Icons.playlist_play_rounded);
+    final queueTooltip = find.ancestor(
+      of: queueIcon,
       matching: find.byType(Tooltip),
     );
-    expect(agentTooltip, findsOneWidget);
-    expect(tester.getSize(agentTooltip), const Size.square(48));
-    expect(tester.getCenter(agentTooltip), tester.getCenter(agentIcon));
-    final tooltip = tester.widget<Tooltip>(agentTooltip);
-    expect(tooltip.message, '智能体');
+    expect(queueTooltip, findsOneWidget);
+    expect(tester.getSize(queueTooltip), const Size.square(48));
+    expect(tester.getCenter(queueTooltip), tester.getCenter(queueIcon));
+    final tooltip = tester.widget<Tooltip>(queueTooltip);
+    expect(tooltip.message, '队列管理');
     expect(tooltip.verticalOffset, 24);
 
     await tester.scrollUntilVisible(
@@ -190,9 +190,6 @@ void main() {
     expect(find.text('本地图库'), findsOneWidget);
     expect(find.text('在线画廊'), findsOneWidget);
     expect(find.text('统计'), findsOneWidget);
-    expect(find.text('Discord 社群'), findsOneWidget);
-    expect(find.text('GitHub 仓库'), findsOneWidget);
-    expect(find.text('智能体'), findsOneWidget);
     expect(find.text('队列管理'), findsOneWidget);
     expect(find.text('收起侧边栏'), findsOneWidget);
     expect(find.text('v${AppVersion.versionName}'), findsOneWidget);

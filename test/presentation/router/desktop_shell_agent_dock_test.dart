@@ -27,8 +27,6 @@ import 'package:nai_launcher/presentation/router/shell_panels_overlay.dart';
 import 'package:nai_launcher/presentation/widgets/navigation/main_nav_rail.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-const _agentNav = Key('agent-nav-item');
-
 void main() {
   late Directory hiveDir;
 
@@ -123,12 +121,9 @@ void main() {
   }
 
   Future<void> tapAgentNav(WidgetTester tester) async {
-    await tester.ensureVisible(find.byKey(_agentNav));
-    await tester.pump();
-    // 收起的导航栏只露出图标列，按行中心点击会落在裁切区外。
-    await tester.tap(
-      find.descendant(of: find.byKey(_agentNav), matching: find.byType(Icon)),
-    );
+    // 智能体入口已从侧栏移除，直接通过导航栏回调驱动同一开关动作。
+    final rail = tester.widget<MainNavRail>(find.byType(MainNavRail));
+    rail.onAgentVisibilityChanged(!rail.isAgentVisible);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
   }

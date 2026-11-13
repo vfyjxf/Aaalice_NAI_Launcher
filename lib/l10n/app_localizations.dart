@@ -8026,6 +8026,18 @@ abstract class AppLocalizations {
   /// **'All'**
   String get onlineGallery_aiTagAllTime;
 
+  /// No description provided for @onlineGallery_aiTagModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get onlineGallery_aiTagModel;
+
+  /// No description provided for @onlineGallery_aiTagAllModels.
+  ///
+  /// In en, this message translates to:
+  /// **'All models'**
+  String get onlineGallery_aiTagAllModels;
+
   /// No description provided for @onlineGallery_aiTagCurrentMonthly.
   ///
   /// In en, this message translates to:

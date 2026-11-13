@@ -146,9 +146,7 @@ void main() {
     },
   );
 
-  testWidgets('completed visible image waits for scroll idle before decoding', (
-    tester,
-  ) async {
+  testWidgets('completed thumbnail publishes while scrolling', (tester) async {
     final gate = Completer<void>();
     final coordinator = OnlineGalleryPrefetchCoordinator(
       preloader: (_) => GalleryImagePreloadOperation.fromFuture(gate.future),
@@ -169,8 +167,36 @@ void main() {
     gate.complete();
     await tester.pump();
 
-    expect(find.text('waiting'), findsOneWidget);
+    // 缩略图解码成本低，滚动中到达也不应停留在占位。
+    expect(find.byType(Image), findsOneWidget);
+  });
+
+  testWidgets('completed sample waits for scroll idle before publishing', (
+    tester,
+  ) async {
+    final gate = Completer<void>();
+    final coordinator = OnlineGalleryPrefetchCoordinator(
+      preloader: (_) => GalleryImagePreloadOperation.fromFuture(gate.future),
+    );
+    addTearDown(coordinator.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CoordinatedGalleryImage(
+          request: _sample,
+          coordinator: coordinator,
+          placeholder: const Text('waiting'),
+          fadeIn: false,
+        ),
+      ),
+    );
+    coordinator.setScrolling(true);
+    gate.complete();
+    await tester.pump();
+
+    // 原图 sample 体积大，滚动中完成后仍只保留占位。
     expect(find.byType(Image), findsNothing);
+    expect(find.text('waiting'), findsOneWidget);
 
     coordinator.setScrolling(false);
     await tester.pump();

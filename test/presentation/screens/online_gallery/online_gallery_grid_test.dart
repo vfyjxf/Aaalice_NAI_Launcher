@@ -44,7 +44,9 @@ void main() {
     expect(scrollingNotifications, 2);
   });
 
-  testWidgets('unseen items reveal once after scrolling stops', (tester) async {
+  testWidgets('unseen items reveal as soon as they become visible', (
+    tester,
+  ) async {
     final previousUpdateInterval =
         VisibilityDetectorController.instance.updateInterval;
     VisibilityDetectorController.instance.updateInterval = Duration.zero;
@@ -94,16 +96,18 @@ void main() {
       ),
     );
     await tester.pump();
+    // 可见即装配：滚动中不再等待滚动停止，瓦片立即取图。
     expect(
       (builds, lastHasBeenVisible, lastIsScrolling, lastIsVisible),
-      (1, false, false, false),
+      (2, true, true, true),
     );
 
     scrolling.value = false;
     await tester.pump();
+    // 装配完成后瓦片不再监听滚动，builder 记录的是装配瞬间的滚动状态。
     expect(
       (builds, lastHasBeenVisible, lastIsScrolling, lastIsVisible),
-      (2, true, false, true),
+      (2, true, true, true),
     );
 
     scrolling.value = true;

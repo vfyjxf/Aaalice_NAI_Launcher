@@ -1979,6 +1979,8 @@
   "onlineGallery_artistHuntDetailFailed": "None of the candidate work details could be parsed. Please retry.",
   "onlineGallery_aiTagTimeRange": "Time range",
   "onlineGallery_aiTagAllTime": "All",
+  "onlineGallery_aiTagModel": "Model",
+  "onlineGallery_aiTagAllModels": "All models",
   "onlineGallery_aiTagCurrentMonthly": "Live monthly ranking",
   "onlineGallery_aiTagOlderMonthly": "Older archive",
   "onlineGallery_aiTagRankingProcessing": "The ranking is being generated. Please try again shortly.",

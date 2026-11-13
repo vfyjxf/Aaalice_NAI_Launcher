@@ -1,0 +1,63 @@
+name: macOS Portable Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: "3.47.5"
+
+jobs:
+  build-macos:
+    name: Build macOS portable app
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: false
+
+      - name: Download verified bundled database
+        shell: pwsh
+        run: ./scripts/prepare_bundled_database.ps1
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Prepare CocoaPods
+        run: pod --version
+
+      - name: Resolve dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Generate localizations
+        run: flutter gen-l10n
+
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build macOS release
+        run: flutter build macos --release
+
+      - name: Ad-hoc sign the app bundle
+        run: codesign --force --deep --sign - "build/macos/Build/Products/Release/Aaalice NAI Launcher.app"
+
+      - name: Package portable zip
+        run: |
+          mkdir -p dist
+          cd "build/macos/Build/Products/Release"
+          ditto -c -k --sequesterRsrc --keepParent "Aaalice NAI Launcher.app" "$GITHUB_WORKSPACE/dist/NAI_Launcher_macOS_4.3.1_custom.zip"
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-portable
+          path: dist/NAI_Launcher_macOS_4.3.1_custom.zip
+          if-no-files-found: error

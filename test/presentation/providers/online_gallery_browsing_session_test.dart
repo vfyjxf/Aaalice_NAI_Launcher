@@ -28,6 +28,7 @@ void main() {
       selectedRatings: {'g', 's'},
       popularScale: PopularScale.month,
       aiTagTimeRange: 'month',
+      aiTagModelFilter: 'nai_v5',
       aiTagPopularPeriod: '2026-02',
       quickTagCloudFilterKey:
           'book%2Fone|%E4%BA%BA%E7%89%A9/%25|update%2F1|recent|withoutImages|true|false|false',
@@ -66,6 +67,21 @@ void main() {
     expect(restored.selectedRatings, {'g', 's'});
     expect(restored.popularScale, PopularScale.month);
     expect(restored.aiTagTimeRange, 'month');
+    expect(restored.aiTagModelFilter, 'nai_v5');
+    expect(
+      const OnlineGalleryState(
+        sourceId: GallerySourceId.aiTag,
+        aiTagModelFilter: 'nai_v5',
+      ).currentCacheKey,
+      contains('model:nai_v5'),
+    );
+    expect(
+      const OnlineGalleryState(
+        sourceId: GallerySourceId.danbooru,
+        aiTagModelFilter: 'nai_v5',
+      ).currentCacheKey,
+      contains('model:'),
+    );
     expect(restored.aiTagPopularPeriod, '2026-02');
     expect(
       restored.quickTagCloudFilterKey,

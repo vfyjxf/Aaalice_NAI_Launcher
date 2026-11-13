@@ -76,6 +76,66 @@ void main() {
     final image = tester.widget<Image>(find.byType(Image));
     expect((image.image as ResizeImage).imageProvider, same(secondProvider));
   });
+
+  testWidgets('纵向轨道固定 64x64 且悬停不改变尺寸', (tester) async {
+    final scrollController = ScrollController();
+    addTearDown(scrollController.dispose);
+    final images = [
+      _TestImageDetailData(
+        MemoryImage(Uint8List.fromList(const [1])),
+        identifier: 'a',
+      ),
+      _TestImageDetailData(
+        MemoryImage(Uint8List.fromList(const [2])),
+        identifier: 'b',
+      ),
+      _TestImageDetailData(
+        MemoryImage(Uint8List.fromList(const [3])),
+        identifier: 'c',
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          // 外层保持宽松宽度，轨道宽度由组件自身决定
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              height: 400,
+              child: DetailThumbnailBar(
+                axis: Axis.vertical,
+                images: images,
+                currentIndex: 0,
+                scrollController: scrollController,
+                onTap: (_) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final listView = tester.widget<ListView>(find.byType(ListView));
+    expect(listView.scrollDirection, Axis.vertical);
+    expect(tester.getSize(find.byType(DetailThumbnailBar)).width, 84);
+
+    final items = find.byType(AnimatedContainer);
+    expect(items, findsNWidgets(3));
+    // 64 的缩略图加上下方 8 的轨道间距计入容器高度
+    expect(tester.getSize(items.at(0)).width, 64);
+    expect(tester.getSize(items.at(0)).height, 72);
+
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(mouse.removePointer);
+    await mouse.addPointer(location: Offset.zero);
+    await mouse.moveTo(tester.getCenter(items.at(1)));
+    await tester.pumpAndSettle();
+
+    // 悬停只改变描边与透明度，不改变几何
+    expect(tester.getSize(items.at(1)).width, 64);
+    expect(tester.getSize(items.at(1)).height, 72);
+  });
 }
 
 class _TestImageDetailData extends ImageDetailData {

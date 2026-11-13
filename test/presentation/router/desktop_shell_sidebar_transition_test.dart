@@ -329,7 +329,9 @@ void main() {
         closedPrimaryRect,
       );
 
-      await tester.tap(find.byKey(const Key('agent-nav-item')));
+      // 智能体入口已从侧栏移除，直接通过导航栏回调驱动同一开关动作。
+      final rail = tester.widget<MainNavRail>(find.byType(MainNavRail));
+      rail.onAgentVisibilityChanged(!rail.isAgentVisible);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       final agentPrimaryRect = tester.getRect(

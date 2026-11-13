@@ -61,7 +61,7 @@ bool _isAiTagMediaHost(Uri? uri) {
 /// 使用共享配置：
 /// - 缓存键：沿用 danbooruImageCache，升级后继续复用现有磁盘池
 /// - 过期时间：7天
-/// - 最大缓存对象数：1000
+/// - 最大缓存对象数：2000（网格预览体积小，扩大对象池减少回滚重复下载）
 /// - 共享磁盘缓存池，支持所有画廊来源
 class OnlineGalleryImageCacheManager extends CacheManager
     with ImageCacheManager {
@@ -77,7 +77,7 @@ class OnlineGalleryImageCacheManager extends CacheManager
         Config(
           key,
           stalePeriod: const Duration(days: 7),
-          maxNrOfCacheObjects: 1000,
+          maxNrOfCacheObjects: 2000,
         ),
       );
 

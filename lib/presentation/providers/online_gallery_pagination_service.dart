@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/cache/online_gallery_detail_coordinator.dart';
+import '../../core/online_gallery/ai_tag_model_filter.dart';
 import '../../core/online_gallery/online_gallery_load_coordinator.dart';
 import '../../core/utils/app_logger.dart';
 import '../../data/datasources/remote/danbooru_api_service.dart';
@@ -198,7 +199,7 @@ class OnlineGalleryPaginationService {
                       : _rankingKind(state.popularScale),
                   date: state.popularDate,
                   period: state.aiTagPopularPeriod,
-                  query: tagPlan.serverQuery,
+                  query: _modelScopedQuery(sourceId, tagPlan.serverQuery),
                   prompt: _effectivePrompt(state.popularPromptQuery),
                   ratings: state.selectedRatings,
                   blacklistTags: blacklist,
@@ -212,7 +213,7 @@ class OnlineGalleryPaginationService {
                   pageSize: sourceId == GallerySourceId.aiTag
                       ? (aiTagConfig?.pageSize ?? 60)
                       : _pageSize,
-                  query: tagPlan.serverQuery,
+                  query: _modelScopedQuery(sourceId, tagPlan.serverQuery),
                   prompt: _effectivePrompt(state.promptQuery),
                   timeRange: state.aiTagTimeRange,
                   ratings: state.selectedRatings,
@@ -482,6 +483,15 @@ class OnlineGalleryPaginationService {
     PopularScale.week => GalleryRankingKind.week,
     PopularScale.month => GalleryRankingKind.month,
   };
+
+  /// AI TAG 的模型筛选拼进 `q`：服务端会同时匹配模型元数据，
+  /// 且不计入标签数量上限，避免模型名挤占用户的检索标签。
+  String _modelScopedQuery(GallerySourceId sourceId, String query) {
+    final token = AiTagModelFilter.fromKey(state.aiTagModelFilter)?.queryToken;
+    if (sourceId != GallerySourceId.aiTag || token == null) return query;
+    final trimmed = query.trim();
+    return trimmed.isEmpty ? token : '$trimmed $token';
+  }
 
   void _finishError(
     Object error,

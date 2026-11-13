@@ -4549,6 +4549,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onlineGallery_aiTagAllTime => 'All';
 
   @override
+  String get onlineGallery_aiTagModel => 'Model';
+
+  @override
+  String get onlineGallery_aiTagAllModels => 'All models';
+
+  @override
   String get onlineGallery_aiTagCurrentMonthly => 'Live monthly ranking';
 
   @override

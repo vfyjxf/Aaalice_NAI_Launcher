@@ -258,6 +258,7 @@ class OnlineGalleryModeButton extends StatelessWidget {
         button: true,
         enabled: enabled,
         selected: isSelected,
+        label: label,
         child: Material(
           color: isSelected ? selectedBackgroundColor : Colors.transparent,
           borderRadius: borderRadius,
@@ -278,20 +279,22 @@ class OnlineGalleryModeButton extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (!compact) ...[
+                    if (compact)
+                      Icon(icon, size: 18, color: foregroundColor)
+                    else ...[
                       Icon(icon, size: 18, color: foregroundColor),
                       const SizedBox(width: 6),
-                    ],
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.normal,
-                        color: foregroundColor,
+                      Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                          color: foregroundColor,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),

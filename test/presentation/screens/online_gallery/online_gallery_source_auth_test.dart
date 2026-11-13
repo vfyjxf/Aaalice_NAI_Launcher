@@ -529,7 +529,8 @@ void main() {
       ];
       expect(
         find.byKey(const ValueKey('online-gallery-primary-controls-scroll')),
-        width < 1800 ? findsOneWidget : findsNothing,
+        findsNothing,
+        reason: '常规字号下主行不再横向滚动',
       );
       for (final key in visibleKeys) {
         final rect = tester.getRect(find.byKey(ValueKey(key)));
@@ -816,6 +817,20 @@ void main() {
       );
       await tester.pump();
 
+      if (width < 900) {
+        // 窄宽度下搜索框收进搜索按钮打开的筛选面板。
+        await tester.tap(
+          find.byKey(const ValueKey('online-gallery-primary-search')),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+      } else if (width < 1100) {
+        await tester.tap(
+          find.byKey(const ValueKey('online-gallery-source-filters')),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+      }
       expect(
         find.widgetWithText(
           TextField,
@@ -824,13 +839,6 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('AI Prompt search'), findsOneWidget);
-      if (width < 1100) {
-        await tester.tap(
-          find.byKey(const ValueKey('online-gallery-source-filters')),
-        );
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 250));
-      }
       final artistHuntToggle = find.byKey(
         const ValueKey('online-gallery-artist-hunt-toggle'),
       );
@@ -906,6 +914,34 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('AI TAG model quick filter picks NAI V5', (tester) async {
+    await _setViewSize(tester, 1600);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          _defaultShortcutConfig,
+          onlineGalleryNotifierProvider.overrideWith(
+            _AiTagSearchGalleryNotifier.new,
+          ),
+          danbooruAuthProvider.overrideWith(_LoggedOutDanbooruAuth.new),
+          gelbooruAuthProvider.overrideWith(_UnconfiguredGelbooruAuth.new),
+        ],
+        child: const _TestApp(),
+      ),
+    );
+    await tester.pump();
+
+    final dropdown = find.byKey(const ValueKey('online-gallery-ai-tag-model'));
+    expect(dropdown, findsOneWidget);
+    await tester.tap(dropdown);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('NAI V5').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('NAI V5'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('AI TAG detail exposes multi-image metadata actions', (
     tester,
@@ -1591,7 +1627,12 @@ void main() {
           find.byKey(const ValueKey('online-gallery-page-title')),
           findsOneWidget,
         );
-        expect(find.text('在线画廊'), findsOneWidget);
+        if (width >= 900) {
+          expect(find.text('在线画廊'), findsOneWidget);
+        } else {
+          // 窄桌面/窄屏只保留页面图标，给操作区让位。
+          expect(find.text('在线画廊'), findsNothing);
+        }
         expect(
           find.descendant(
             of: find.byKey(const ValueKey('online-gallery-page-title')),
@@ -1703,9 +1744,6 @@ void main() {
         final searchRect = tester.getRect(
           find.byKey(const ValueKey('online-gallery-primary-search')),
         );
-        final counterRect = tester.getRect(
-          find.byKey(const ValueKey('online-gallery-tag-count')),
-        );
         final blacklistRect = tester.getRect(
           find.byKey(const ValueKey('online-gallery-blacklist')),
         );
@@ -1715,18 +1753,26 @@ void main() {
         final primaryRect = tester.getRect(
           find.byKey(const ValueKey('online-gallery-toolbar-primary-row')),
         );
-        expect(searchRect.width, greaterThanOrEqualTo(280));
-        if (width == 360) {
-          // QuickTagCloud keeps a medium-width query field even when the row
-          // scrolls; initial entry centers it instead of hiding it off-screen.
-          expect(searchRect.center.dx, closeTo(width / 2, 0.1));
-          expect(
-            searchRect.intersect(Rect.fromLTWH(0, 0, width, 900)).width,
-            greaterThanOrEqualTo(width - 32),
+        if (width >= 900) {
+          final counterRect = tester.getRect(
+            find.byKey(const ValueKey('online-gallery-tag-count')),
           );
+          expect(searchRect.width, greaterThanOrEqualTo(280));
+          expect(counterRect.center.dy, closeTo(searchRect.center.dy, 0.1));
+          expect(blacklistRect.left - searchRect.right, closeTo(8, 0.1));
+        } else {
+          // 窄桌面：搜索框收成按钮，点击后筛选面板内含搜索框。
+          expect(searchRect.width, lessThan(60));
+          await tester.tap(
+            find.byKey(const ValueKey('online-gallery-primary-search')),
+          );
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 300));
+          expect(find.byType(TextField), findsWidgets);
+          Navigator.of(tester.element(find.byType(TextField).first)).pop();
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 300));
         }
-        expect(counterRect.center.dy, closeTo(searchRect.center.dy, 0.1));
-        expect(blacklistRect.left - searchRect.right, closeTo(8, 0.1));
         expect(
           accountRect.right,
           greaterThanOrEqualTo(primaryRect.right - 0.1),
@@ -2032,7 +2078,7 @@ void main() {
     expect(tester.getSize(secondaryRow).height, 48);
     expect(
       find.byKey(const ValueKey('online-gallery-primary-controls-scroll')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(tester.takeException(), isNull);
   });

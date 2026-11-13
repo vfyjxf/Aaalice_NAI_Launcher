@@ -1908,6 +1908,8 @@
   "onlineGallery_artistHuntDetailFailed": "候選作品詳情全部解析失敗，請重試。",
   "onlineGallery_aiTagTimeRange": "時間範圍",
   "onlineGallery_aiTagAllTime": "全部",
+  "onlineGallery_aiTagModel": "模型",
+  "onlineGallery_aiTagAllModels": "全部模型",
   "onlineGallery_aiTagCurrentMonthly": "實時月榜",
   "onlineGallery_aiTagOlderMonthly": "更早歸檔",
   "onlineGallery_aiTagRankingProcessing": "排行榜生成中，請稍後重試。",
