@@ -705,6 +705,77 @@ void main() {
     expect(searchedTag, 'red_hair');
   });
 
+  testWidgets('tapping the AI TAG author searches by uploader id', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const item = GalleryItem(
+      id: 151997518,
+      sourceId: GallerySourceId.aiTag,
+      site: 'aitag',
+      title: '無題',
+      author: 'ちぇる',
+      uploaderId: 25732870,
+      previewFileUrl: 'https://cdn.example/NAI/25732870/151997518_p0.webp',
+      sampleUrl: '',
+      fileUrl: '',
+      tagString: 'R-18',
+      tags: ['R-18'],
+      createdAt: '2026-11-13T03:31:22',
+      rating: 'g',
+      score: 0,
+      width: 0,
+      height: 0,
+      fileExt: 'webp',
+    );
+    String? searchedAuthor;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: GalleryDetailDialog(
+              item: item,
+              detail: const GalleryDetail(item: item, media: []),
+              isFavorited: false,
+              favoriteLoading: false,
+              canUseGenerationActions: false,
+              labels: _labels(),
+              onCopyPrompt: (_) {},
+              onToggleFavorite: () async => true,
+              onOpenSource: () {},
+              onSendToGenerate: (_) {},
+              onAddToQueue: (_) async {},
+              onDownloadCurrentOriginal: (_) async {},
+              onTagSearch: (tag) => searchedAuthor = tag,
+              onBlacklistChanged: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('ちぇる'),
+      160,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('online-gallery-author-search')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(searchedAuthor, '25732870');
+  });
+
   testWidgets('disables original download when only a preview exists', (
     tester,
   ) async {

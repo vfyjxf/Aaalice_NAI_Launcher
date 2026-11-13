@@ -169,6 +169,49 @@ void main() {
         throwsA(_notFound),
       );
     });
+
+    test(
+      'list items carry a constructed p0 cover without a detail call',
+      () async {
+        final http = _FakeHttpAdapter((request) {
+          if (request.uri.path == '/api/config') return _configJson;
+          expect(request.uri.path, '/api/ai_works_search');
+          return const _FakeResponse({
+            'page': 1,
+            'page_size': 60,
+            'total': 1,
+            'items': [
+              {
+                'id': 151997518,
+                'image_count': 4,
+                'userId': 25732870,
+                'userName': 'ちぇる',
+                'AI_type': 'NAI',
+                'title': '無題',
+                'tags': '["R-18"]',
+                'create_date': '2026-11-13T03:31:22',
+              },
+            ],
+          }, statusCode: 200);
+        });
+        final adapter = AiTagGallerySourceAdapter(
+          dio: Dio()..httpClientAdapter = http,
+        );
+
+        final page = await adapter.search(
+          const GallerySearchRequest(cursor: '1', pageSize: 60, query: ''),
+        );
+
+        final item = page.items.single;
+        expect(item.uploaderId, 25732870);
+        expect(item.hasValidPreview, isTrue);
+        expect(
+          item.cover.previewUrl,
+          'https://cdn.example/NAI/25732870/151997518_p0.webp',
+        );
+        expect(item.cover.aspectRatio, 1);
+      },
+    );
   });
 }
 

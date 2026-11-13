@@ -8038,6 +8038,12 @@ abstract class AppLocalizations {
   /// **'All models'**
   String get onlineGallery_aiTagAllModels;
 
+  /// No description provided for @onlineGallery_searchAuthor.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by this author'**
+  String get onlineGallery_searchAuthor;
+
   /// No description provided for @onlineGallery_aiTagCurrentMonthly.
   ///
   /// In en, this message translates to:

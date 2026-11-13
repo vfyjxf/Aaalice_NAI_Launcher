@@ -541,8 +541,8 @@ void main() {
         );
         expect(page.items.single.tags, isNot(containsAll(['Hello', 'World'])));
         expect(page.items.single.tagsComplete, isFalse);
-        expect(page.items.single.hasPendingCover, isTrue);
-        expect(page.items.single.coverMediaId, isNull);
+        expect(page.items.single.hasPendingCover, isFalse);
+        expect(page.items.single.coverMediaId, '100_p0');
         expect(page.hasMore, isTrue);
         expect(page.nextCursor, '3');
       },

@@ -1968,6 +1968,7 @@
   "onlineGallery_aiTagAllTime": "すべて",
   "onlineGallery_aiTagModel": "モデル",
   "onlineGallery_aiTagAllModels": "すべてのモデル",
+  "onlineGallery_searchAuthor": "この作者で検索",
   "onlineGallery_aiTagCurrentMonthly": "リアルタイム月間ランキング",
   "onlineGallery_aiTagOlderMonthly": "過去のアーカイブ",
   "onlineGallery_aiTagRankingProcessing": "ランキングを生成中です。しばらくしてから再試行してください。",

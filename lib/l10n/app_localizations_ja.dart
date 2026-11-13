@@ -4436,6 +4436,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onlineGallery_aiTagAllModels => 'すべてのモデル';
 
   @override
+  String get onlineGallery_searchAuthor => 'この作者で検索';
+
+  @override
   String get onlineGallery_aiTagCurrentMonthly => 'リアルタイム月間ランキング';
 
   @override

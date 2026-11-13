@@ -4354,6 +4354,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onlineGallery_aiTagAllModels => '全部模型';
 
   @override
+  String get onlineGallery_searchAuthor => '按该作者搜索';
+
+  @override
   String get onlineGallery_aiTagCurrentMonthly => '实时月榜';
 
   @override
@@ -19882,6 +19885,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get onlineGallery_aiTagAllModels => '全部模型';
+
+  @override
+  String get onlineGallery_searchAuthor => '依此作者搜尋';
 
   @override
   String get onlineGallery_aiTagCurrentMonthly => '實時月榜';

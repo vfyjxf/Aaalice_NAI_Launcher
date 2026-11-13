@@ -1888,6 +1888,7 @@
   "onlineGallery_aiTagAllTime": "全部",
   "onlineGallery_aiTagModel": "模型",
   "onlineGallery_aiTagAllModels": "全部模型",
+  "onlineGallery_searchAuthor": "按该作者搜索",
   "onlineGallery_aiTagCurrentMonthly": "实时月榜",
   "onlineGallery_aiTagOlderMonthly": "更早归档",
   "onlineGallery_aiTagRankingProcessing": "排行榜生成中，请稍后重试。",

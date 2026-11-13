@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/localization_extension.dart';
 import '../../../core/utils/prompt_tag_utils.dart';
 import '../../../data/models/online_gallery/ai_tag_generation_info.dart';
 import '../../../data/models/online_gallery/gallery_item.dart';
@@ -26,6 +27,18 @@ class GalleryDetailInfoPanel extends StatelessWidget {
   final GalleryDetailActions actions;
   final ScrollController scrollController;
   final Widget primaryActions;
+
+  /// 作者快捷搜索的检索词：AI TAG 用作者 ID（精确），booru 用画师标签。
+  String? get _authorSearchToken {
+    final item = viewModel.item;
+    if (item.sourceId == GallerySourceId.aiTag && item.uploaderId > 0) {
+      return item.uploaderId.toString();
+    }
+    final artists = PromptTagUtils.uniqueForDisplay(item.artistTags);
+    if (artists.isNotEmpty) return artists.first;
+    final author = item.author?.trim();
+    return author == null || author.isEmpty ? null : author;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -233,6 +246,7 @@ class GalleryDetailInfoPanel extends StatelessWidget {
                         if (!isQuickTagCloud && preferredFile.isNotEmpty) ...[
                           const SizedBox(height: 14),
                           _buildCompactMetadata(
+                            context,
                             theme,
                             icon: Icons.image_outlined,
                             label: preferredFileLabel,
@@ -242,15 +256,20 @@ class GalleryDetailInfoPanel extends StatelessWidget {
                         if (!isQuickTagCloud && author.isNotEmpty) ...[
                           const SizedBox(height: 10),
                           _buildCompactMetadata(
+                            context,
                             theme,
                             icon: Icons.person_outline,
                             label: viewModel.labels.author,
                             value: author,
+                            onTap: _authorSearchToken == null
+                                ? null
+                                : () => actions.searchTag(_authorSearchToken!),
                           ),
                         ],
                         if (!isQuickTagCloud && showDeclaredSource) ...[
                           const SizedBox(height: 12),
                           _buildCompactMetadata(
+                            context,
                             theme,
                             icon: Icons.dataset_outlined,
                             label: viewModel.labels.declaredSource,
@@ -705,12 +724,17 @@ class GalleryDetailInfoPanel extends StatelessWidget {
   }
 
   Widget _buildCompactMetadata(
+    BuildContext context,
     ThemeData theme, {
     required IconData icon,
     required String label,
     required String value,
+    VoidCallback? onTap,
   }) {
-    return Row(
+    final valueColor = onTap == null
+        ? theme.colorScheme.onSurface
+        : theme.colorScheme.primary;
+    final row = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
@@ -735,15 +759,45 @@ class GalleryDetailInfoPanel extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           flex: 3,
-          child: SelectableText(
-            value,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface,
-              height: 1.35,
-            ),
-          ),
+          child: onTap == null
+              ? SelectableText(
+                  value,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: valueColor,
+                    height: 1.35,
+                  ),
+                )
+              : Text(
+                  value,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: valueColor,
+                    height: 1.35,
+                    decoration: TextDecoration.underline,
+                    decorationColor: valueColor.withValues(alpha: 0.45),
+                  ),
+                ),
         ),
+        if (onTap != null) ...[
+          const SizedBox(width: 4),
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(Icons.search, size: 14, color: valueColor),
+          ),
+        ],
       ],
+    );
+    if (onTap == null) return row;
+    return Tooltip(
+      message: context.l10n.onlineGallery_searchAuthor,
+      child: InkWell(
+        key: const ValueKey('online-gallery-author-search'),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(6),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: row,
+        ),
+      ),
     );
   }
 

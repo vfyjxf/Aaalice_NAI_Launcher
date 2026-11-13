@@ -23,6 +23,9 @@ class AiTagGallerySourceAdapter implements GallerySourceAdapter {
       _random = random ?? Random.secure();
 
   static const _baseUrl = 'https://aitag.win';
+
+  /// 配置接口不可用时的静态兜底；图片对象存储地址长期稳定。
+  static const _fallbackAssetBaseUrl = 'https://ai-img.10118899.xyz/';
   static const _configTtl = Duration(minutes: 30);
   static const _apiHeaders = <String, String>{
     'Accept': 'application/json',
@@ -32,6 +35,7 @@ class AiTagGallerySourceAdapter implements GallerySourceAdapter {
   final Dio _dio;
   final Random _random;
   AiTagSourceConfig? _cachedConfig;
+  bool _configRefreshScheduled = false;
 
   @override
   Random get randomGenerator => _random;
@@ -64,7 +68,11 @@ class AiTagGallerySourceAdapter implements GallerySourceAdapter {
     try {
       final response = await _dio.get(
         '$_baseUrl/api/config',
-        options: Options(headers: _apiHeaders),
+        options: Options(
+          headers: _apiHeaders,
+          receiveTimeout: const Duration(seconds: 6),
+          sendTimeout: const Duration(seconds: 6),
+        ),
         cancelToken: cancelToken,
       );
       if (response.data is! Map) {
@@ -100,19 +108,43 @@ class AiTagGallerySourceAdapter implements GallerySourceAdapter {
       rethrow;
     } on DioException catch (error) {
       if (error.type == DioExceptionType.cancel) rethrow;
-      throw GallerySourceException(
-        GallerySourceErrorCode.configurationUnavailable,
-        source: sourceId,
-        statusCode: error.response?.statusCode,
-        cause: error,
-      );
-    } catch (error) {
-      throw GallerySourceException(
-        GallerySourceErrorCode.configurationUnavailable,
-        source: sourceId,
-        cause: error,
-      );
+      return _fallbackConfig();
+    } catch (_) {
+      // 配置只是补充信息；接口超时或结构变化不应让整个来源不可用。
+      return _fallbackConfig();
     }
+  }
+
+  /// 首屏检索不等待配置接口：先用手上的/静态配置，真实配置后台刷新。
+  AiTagSourceConfig _configForImmediateRequest() {
+    final cached = _cachedConfig;
+    if (cached != null) return cached;
+    final config = _fallbackConfig();
+    _scheduleConfigRefresh();
+    return config;
+  }
+
+  void _scheduleConfigRefresh() {
+    if (_configRefreshScheduled) return;
+    _configRefreshScheduled = true;
+    unawaited(
+      getConfig(forceRefresh: true).whenComplete(() {
+        _configRefreshScheduled = false;
+      }),
+    );
+  }
+
+  AiTagSourceConfig _fallbackConfig() {
+    final config = AiTagSourceConfig(
+      assetBaseUrl: _fallbackAssetBaseUrl,
+      pageSize: 60,
+      availableYears: const [],
+      availableMonths: const [],
+      fetchedAt: DateTime.now(),
+    );
+    registerAiTagImageBaseUrl(config.assetBaseUrl);
+    _cachedConfig = config;
+    return config;
   }
 
   @override
@@ -121,7 +153,7 @@ class AiTagGallerySourceAdapter implements GallerySourceAdapter {
     CancelToken? cancelToken,
     bool noCache = false,
   }) async {
-    final config = await getConfig(cancelToken: cancelToken);
+    final config = _configForImmediateRequest();
     final page = galleryCursorPage(request.cursor);
     return _fetchList(
       '$_baseUrl/api/ai_works_search',
@@ -147,7 +179,7 @@ class AiTagGallerySourceAdapter implements GallerySourceAdapter {
     CancelToken? cancelToken,
     bool noCache = false,
   }) async {
-    final config = await getConfig(cancelToken: cancelToken);
+    final config = _configForImmediateRequest();
     final page = galleryCursorPage(request.cursor);
     final period = request.period.trim().isEmpty ? 'current' : request.period;
     final String url;
@@ -190,10 +222,7 @@ class AiTagGallerySourceAdapter implements GallerySourceAdapter {
         url,
         queryParameters: queryParameters,
         options: Options(
-          headers: {
-            ..._apiHeaders,
-            if (noCache) 'Cache-Control': 'no-cache',
-          },
+          headers: {..._apiHeaders, if (noCache) 'Cache-Control': 'no-cache'},
         ),
         cancelToken: cancelToken,
       );
@@ -433,6 +462,13 @@ class AiTagGallerySourceAdapter implements GallerySourceAdapter {
     final title = json['title']?.toString().trim();
     final author = json['userName']?.toString().trim();
     final aiType = (json['AI_type'] ?? json['ai_type'])?.toString();
+    final uploaderId = _asInt(json['userId'] ?? json['userid']) ?? 0;
+    final coverUrl = _aiTagCoverUrl(
+      assetBaseUrl: _cachedConfig?.assetBaseUrl,
+      aiType: aiType,
+      userId: uploaderId,
+      workId: id,
+    );
     final searchableTags = <String>{..._parseStringList(json['tags'])};
     final searchTerms = <String>{
       ...searchableTags,
@@ -449,7 +485,7 @@ class AiTagGallerySourceAdapter implements GallerySourceAdapter {
       id: id,
       sourceId: GallerySourceId.aiTag,
       createdAt: json['create_date']?.toString() ?? '',
-      uploaderId: _asInt(json['userId'] ?? json['userid']) ?? 0,
+      uploaderId: uploaderId,
       score: _asNum(json['score'])?.round(),
       rating: null,
       title: title,
@@ -464,8 +500,35 @@ class AiTagGallerySourceAdapter implements GallerySourceAdapter {
       searchTerms: List<String>.unmodifiable(searchTerms),
       // The list payload omits per-media prompts the blacklist must inspect.
       tagsComplete: false,
-      cover: GalleryMedia.pending('$id'),
+      // 列表已能拼出稳定的 p0 封面，网格无需为每个可见项再请求一次详情。
+      cover: coverUrl == null
+          ? GalleryMedia.pending('$id')
+          : GalleryMedia(
+              id: '${id}_p0',
+              previewUrl: coverUrl,
+              displayUrl: coverUrl,
+              extension: 'webp',
+              mediaType: 'image',
+            ),
     );
+  }
+
+  /// AI TAG 对象存储路径固定为 `<AI_type>/<userId>/<workId>_p0.webp`。
+  String? _aiTagCoverUrl({
+    required String? assetBaseUrl,
+    required String? aiType,
+    required int userId,
+    required int workId,
+  }) {
+    final base = assetBaseUrl?.trim() ?? '';
+    final type = aiType?.trim() ?? '';
+    if (base.isEmpty || type.isEmpty || userId <= 0 || workId <= 0) {
+      return null;
+    }
+    final normalizedBase = base.endsWith('/')
+        ? base.substring(0, base.length - 1)
+        : base;
+    return '$normalizedBase/${Uri.encodeComponent(type)}/$userId/${workId}_p0.webp';
   }
 
   static MetadataParseResult _parseMetadata(
@@ -607,7 +670,7 @@ class AiTagGallerySourceAdapter implements GallerySourceAdapter {
     GalleryRandomSearchRequest request,
     CancelToken? cancelToken,
   ) async {
-    final config = await getConfig(cancelToken: cancelToken);
+    final config = _configForImmediateRequest();
     final cacheKey = GalleryRandomCacheKeys.aiTagTotal(
       query: request.query,
       prompt: request.prompt,
