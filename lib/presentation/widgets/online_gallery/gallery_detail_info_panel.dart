@@ -29,16 +29,8 @@ class GalleryDetailInfoPanel extends StatelessWidget {
   final Widget primaryActions;
 
   /// 作者快捷搜索的检索词：AI TAG 用作者 ID（精确），booru 用画师标签。
-  String? get _authorSearchToken {
-    final item = viewModel.item;
-    if (item.sourceId == GallerySourceId.aiTag && item.uploaderId > 0) {
-      return item.uploaderId.toString();
-    }
-    final artists = PromptTagUtils.uniqueForDisplay(item.artistTags);
-    if (artists.isNotEmpty) return artists.first;
-    final author = item.author?.trim();
-    return author == null || author.isEmpty ? null : author;
-  }
+  String? get _authorSearchToken =>
+      galleryDetailAuthorSearchToken(viewModel.item);
 
   @override
   Widget build(BuildContext context) {

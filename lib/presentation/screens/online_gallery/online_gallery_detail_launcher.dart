@@ -109,6 +109,7 @@ class OnlineGalleryDetailLauncher {
             sourceName: item.sourceId == GallerySourceId.quickTagCloud
                 ? l10n.onlineGallery_sourceQuickTagCloud
                 : item.sourceId.label,
+            searchAuthor: l10n.onlineGallery_searchAuthor,
             untitled: l10n.onlineGallery_codexUntitled,
             codex: l10n.onlineGallery_codexLabel,
             category: l10n.common_category,

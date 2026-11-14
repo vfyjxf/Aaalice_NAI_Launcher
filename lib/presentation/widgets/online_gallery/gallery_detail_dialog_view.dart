@@ -225,20 +225,49 @@ class _GalleryDetailHeader extends StatelessWidget {
   final GalleryDetailViewModel viewModel;
   final GalleryDetailActions actions;
 
+  WidgetSpan _buildAuthorSpan(
+    ThemeData theme,
+    String text,
+    String token,
+    GalleryDetailActions actions,
+  ) {
+    Widget link = InkWell(
+      key: const ValueKey('online-gallery-header-author'),
+      onTap: () => actions.searchTag(token),
+      borderRadius: BorderRadius.circular(4),
+      child: Text(
+        text,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.primary,
+          decoration: TextDecoration.underline,
+          decorationColor: theme.colorScheme.primary.withValues(alpha: 0.45),
+        ),
+      ),
+    );
+    if (viewModel.labels.searchAuthor.isNotEmpty) {
+      link = Tooltip(message: viewModel.labels.searchAuthor, child: link);
+    }
+    return WidgetSpan(alignment: PlaceholderAlignment.middle, child: link);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final title = viewModel.item.title?.trim();
     final codexTitle = _metadataString('codexTitle');
     final codexVersion = _metadataString('codexVersion');
+    final author = viewModel.item.author?.trim() ?? '';
+    final authorToken = galleryDetailAuthorSearchToken(viewModel.item);
     final subtitleParts = [
       if (codexTitle.isNotEmpty) codexTitle,
       if (codexVersion.isNotEmpty) codexVersion,
-      if (viewModel.item.author?.trim().isNotEmpty == true)
-        viewModel.item.author!.trim(),
+      if (author.isNotEmpty) author,
       if (viewModel.item.createdAt.trim().isNotEmpty)
         viewModel.item.createdAt.trim(),
     ];
+    // 作者在副标题中的下标：codex 标题/版本各占一项。
+    final authorIndex =
+        (codexTitle.isNotEmpty ? 1 : 0) + (codexVersion.isNotEmpty ? 1 : 0);
     final fallbackTitle =
         viewModel.item.sourceId == GallerySourceId.quickTagCloud
         ? viewModel.labels.untitled
@@ -257,13 +286,28 @@ class _GalleryDetailHeader extends StatelessWidget {
           ),
         ),
         if (subtitleParts.isNotEmpty)
-          Text(
-            subtitleParts.join(' · '),
+          Text.rich(
+            TextSpan(
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              children: [
+                for (var i = 0; i < subtitleParts.length; i++) ...[
+                  if (i > 0) const TextSpan(text: ' · '),
+                  if (i == authorIndex && authorToken != null)
+                    _buildAuthorSpan(
+                      theme,
+                      subtitleParts[i],
+                      authorToken,
+                      actions,
+                    )
+                  else
+                    TextSpan(text: subtitleParts[i]),
+                ],
+              ],
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
           ),
       ],
     );

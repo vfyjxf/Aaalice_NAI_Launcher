@@ -1,7 +1,20 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 
+import '../../../core/utils/prompt_tag_utils.dart';
 import '../../../data/models/online_gallery/gallery_item.dart';
+import '../../../data/models/online_gallery/gallery_source.dart';
+
+/// 作者快捷搜索的检索词：AI TAG 用作者 ID（精确），booru 用画师标签。
+String? galleryDetailAuthorSearchToken(GalleryItem item) {
+  if (item.sourceId == GallerySourceId.aiTag && item.uploaderId > 0) {
+    return item.uploaderId.toString();
+  }
+  final artists = PromptTagUtils.uniqueForDisplay(item.artistTags);
+  if (artists.isNotEmpty) return artists.first;
+  final author = item.author?.trim();
+  return author == null || author.isEmpty ? null : author;
+}
 
 /// All user-facing copy used by GalleryDetailDialog.
 @immutable
@@ -53,6 +66,7 @@ class GalleryDetailDialogLabels {
     required this.score,
     required this.downloadAll,
     required this.sendToReverse,
+    this.searchAuthor = '',
   });
 
   final String sourceName;
@@ -101,6 +115,7 @@ class GalleryDetailDialogLabels {
   final String score;
   final String downloadAll;
   final String sendToReverse;
+  final String searchAuthor;
 }
 
 @immutable
