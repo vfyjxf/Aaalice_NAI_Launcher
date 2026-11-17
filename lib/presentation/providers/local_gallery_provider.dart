@@ -353,6 +353,20 @@ class LocalGalleryNotifier extends _$LocalGalleryNotifier {
   // 数据加载
   // ============================================================
 
+  /// 加载完整的有序筛选结果，供图片详情查看器使用。
+  ///
+  /// 网格仍按页渲染；查看器需要整个集合，才能连续翻页/滚动缩略图而不是
+  /// 只停留在当前 50 张。
+  Future<List<LocalImageRecord>> loadAllForDetailViewer() async {
+    if (!state.isInitialized) return const [];
+    final service = await getService();
+    final total = state.filterCriteria.hasFilters
+        ? service.filteredCount
+        : service.totalCount;
+    if (total <= 0) return const [];
+    return service.getPage(0, pageSize: total);
+  }
+
   /// 加载指定页面
   ///
   /// [page] 页码（从0开始）

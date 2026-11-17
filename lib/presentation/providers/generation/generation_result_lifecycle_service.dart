@@ -90,7 +90,8 @@ class ExternalImagePreparationResult {
 class GenerationResultLifecycleService {
   const GenerationResultLifecycleService(this.dependencies);
 
-  static const int historyLimit = 50;
+  /// 与 [GenerationHistoryStorageService.maxEntries] 保持一致。
+  static const int historyLimit = 200;
 
   final GenerationResultLifecycleDependencies dependencies;
 

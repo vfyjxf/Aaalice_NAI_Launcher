@@ -36,7 +36,10 @@ class GenerationHistoryStorageService {
 
   static const _orderKey = 'generation_history_v1_order';
   static const _recordPrefix = 'generation_history_v1_record_';
-  static const maxEntries = 50;
+
+  /// 生成历史保留条数。原先是 50，导致稍早的结果被永久删除；
+  /// 提到 200 兼顾回溯范围与历史 PNG 常驻内存的体积。
+  static const maxEntries = 200;
 
   final bool enabled;
   Future<void> _pendingWrite = Future<void>.value();
@@ -70,7 +73,7 @@ class GenerationHistoryStorageService {
       } catch (error, stackTrace) {
         AppLogger.w(
           'Skipping invalid persisted generation image $id: '
-          '${metadataErrorSummary(error)}',
+              '${metadataErrorSummary(error)}',
           'GenerationHistory',
         );
         AppLogger.d(stackTrace.toString(), 'GenerationHistory');

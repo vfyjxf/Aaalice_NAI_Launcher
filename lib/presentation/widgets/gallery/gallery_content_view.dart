@@ -572,11 +572,25 @@ class LocalGalleryContentView extends ConsumerWidget {
           ),
         );
 
-    void showImageDetailViewer(
+    Future<void> showImageDetailViewer(
       List<LocalImageRecord> images,
       int initialIndex,
-    ) {
+    ) async {
+      final notifier = ref.read(localGalleryNotifierProvider.notifier);
+      final allRecords = await notifier.loadAllForDetailViewer();
+      if (!context.mounted) return;
+      final effective = allRecords.isNotEmpty ? allRecords : images;
+      final favoriteByPath = <String, bool>{
+        for (final record in effective) record.path: record.isFavorite,
+      };
+      final tappedPath = images[initialIndex].path;
+      final resolvedIndex = effective.indexWhere(
+        (record) => record.path == tappedPath,
+      );
+
       bool getFavoriteStatus(String path) {
+        final known = favoriteByPath[path];
+        if (known != null) return known;
         final providerState = ref.read(localGalleryNotifierProvider);
         final image = providerState.currentImages
             .cast<LocalImageRecord?>()
@@ -586,23 +600,24 @@ class LocalGalleryContentView extends ConsumerWidget {
 
       ImageDetailOpener.showMultipleImmediate(
         context,
-        images: images
+        images: effective
             .map(
               (r) =>
                   LocalImageDetailData(r, getFavoriteStatus: getFavoriteStatus),
             )
             .toList(),
-        initialIndex: initialIndex,
+        initialIndex: resolvedIndex >= 0 ? resolvedIndex : initialIndex,
         showMetadataPanel: true,
-        showThumbnails: images.length > 1,
+        showThumbnails: effective.length > 1,
         callbacks: ImageDetailCallbacks(
           onReuseMetadata: onReuseMetadata != null
               ? (data) async =>
                     onReuseMetadata?.call((data as LocalImageDetailData).record)
               : null,
-          onFavoriteToggle: (data) => ref
-              .read(localGalleryNotifierProvider.notifier)
-              .toggleFavorite((data as LocalImageDetailData).record.path),
+          onFavoriteToggle: (data) async {
+            final path = (data as LocalImageDetailData).record.path;
+            favoriteByPath[path] = await notifier.toggleFavorite(path);
+          },
           onSendToImg2Img: (data) async {
             try {
               final bytes = await data.getImageBytes();
